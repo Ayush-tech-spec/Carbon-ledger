@@ -134,22 +134,25 @@ app.post("/api/grok", aiLimiter, async (req, res) => {
   const safeMessage = String(userMessage).slice(0, 3000);
 
   try {
-    const response = await fetch("https://api.x.ai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.GROK_API_KEY}`,
+    // In _askGrok function, change endpoint to:
+    const response = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${process.env.GROK_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "llama3-8b-8192",
+          max_tokens: 1000,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: safeMessage },
+          ],
+        }),
       },
-      body: JSON.stringify({
-        model: "grok-beta",
-        max_tokens: Math.min(maxTokens || 1000, 1000),
-        messages: [
-          { role: "system", content: safeSystem },
-          { role: "user", content: safeMessage },
-        ],
-      }),
-    });
-
+    );
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
       console.error("Grok API error:", err);
