@@ -1,79 +1,63 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Carbon Ledger | Personal Carbon Accounting</title>
-    <meta
-      name="description"
-      content="Track, understand, and reduce your carbon footprint using a double-entry ledger system with AI-powered insights."
-    />
+    <title>Carbon Ledger — Financial-Style Footprint Accounting</title>
+    <link rel="stylesheet" href="css/styles.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap"
       rel="stylesheet"
     />
-    <link rel="stylesheet" href="css/styles.css" />
   </head>
   <body>
-    <!-- Header -->
-    <header class="ledger-header" role="banner">
-      <div class="container">
-        <div class="header-top">
-          <div>
-            <div class="ledger-wordmark">Personal Carbon Accounts</div>
-            <h1 class="ledger-title">Carbon Ledger</h1>
-            <p class="ledger-subtitle">
-              Every tonne accounted for &mdash;
-              <span id="current-month">June 2026</span>
-            </p>
-          </div>
-          <div class="ai-model-switcher">
-            <label class="switcher-label" for="model-select">AI Model</label>
-            <select
-              id="model-select"
-              class="model-select"
-              aria-label="Select AI model for insights"
-            >
+    <header class="ledger-header">
+      <div class="header-container">
+        <div class="logo-area">
+          <h1>CARBON LEDGER</h1>
+          <span class="version-tag">v3.0 // HACKATHON_EDITION</span>
+        </div>
+
+        <div class="header-controls">
+          <div class="model-toggle-zone">
+            <label for="modelSelector">ACTIVE_CORE:</label>
+            <select id="modelSelector" class="ledger-select-sm">
+              <option value="grok" selected>Grok (xAI)</option>
               <option value="claude">Claude (Anthropic)</option>
-              <option value="grok">Grok (xAI)</option>
             </select>
-            <div id="model-badge" class="model-badge model-badge--claude">
-              Claude
-            </div>
           </div>
+
+          <button
+            id="themeToggleBtn"
+            class="theme-toggle-btn"
+            aria-label="Toggle dark mode"
+          >
+            <span class="mode-icon-sun">☀️</span>
+            <span class="mode-icon-moon">🌙</span>
+          </button>
         </div>
       </div>
     </header>
 
-    <!-- Balance Sheet -->
-    <section class="balance-sheet" role="region" aria-label="Account summary">
-      <div class="container">
-        <div class="balance-grid">
-          <div class="balance-cell">
-            <div class="balance-label">Total Debits</div>
-            <div class="balance-value debit" id="total-debit">0.0</div>
-            <div class="balance-unit">kg CO<sub>2</sub> emitted</div>
-          </div>
-          <div class="balance-cell balance-cell--mid">
-            <div class="balance-label">Total Credits</div>
-            <div class="balance-value credit" id="total-credit">0.0</div>
-            <div class="balance-unit">kg CO<sub>2</sub> offset</div>
-          </div>
-          <div class="balance-cell">
-            <div class="balance-label">Net Balance</div>
-            <div class="balance-value net" id="net-balance">0.0</div>
-            <div class="balance-unit">kg CO<sub>2</sub> outstanding</div>
-          </div>
+    <main class="ledger-main-container">
+      <section class="balance-sheet-ribbon">
+        <div class="ribbon-tile text-danger">
+          <span class="tile-label">TOTAL_DEBITS (EMISSIONS)</span>
+          <span class="tile-value" id="totalDebits">0.00 kg</span>
         </div>
-      </div>
-    </section>
+        <div class="ribbon-tile text-success">
+          <span class="tile-label">TOTAL_CREDITS (OFFSETS)</span>
+          <span class="tile-value" id="totalCredits">0.00 kg</span>
+        </div>
+        <div class="ribbon-tile text-warning">
+          <span class="tile-label">NET_CARBON_BALANCE</span>
+          <span class="tile-value" id="netBalance">0.00 kg</span>
+        </div>
+      </section>
 
-    <!-- Main Content -->
-    <main class="container main-content">
-      <!-- Tabs -->
-      <nav class="tabs" role="tablist" aria-label="Main navigation">
+      <nav class="ledger-tabs-nav" role="tablist">
         <button
           class="tab-btn active"
           role="tab"
@@ -82,7 +66,7 @@
           id="btn-journal"
           onclick="UI.switchTab('journal', this)"
         >
-          Journal
+          [01] DAILY_JOURNAL
         </button>
         <button
           class="tab-btn"
@@ -92,7 +76,7 @@
           id="btn-analysis"
           onclick="UI.switchTab('analysis', this)"
         >
-          Analysis
+          [02] METRIC_ANALYSIS
         </button>
         <button
           class="tab-btn"
@@ -102,261 +86,180 @@
           id="btn-actions"
           onclick="UI.switchTab('actions', this)"
         >
-          Actions
+          [03] REDUCTION_ACTIONS
         </button>
-        
-      <!-- Journal Tab -->
-      <div
-        id="tab-journal"
-        class="tab-panel active"
-        role="tabpanel"
-        aria-labelledby="btn-journal"
-      >
-        <p class="section-label">Post a new entry</p>
-
-        <form
-          class="log-form"
-          id="entry-form"
-          onsubmit="Journal.postEntry(event)"
-          novalidate
-          aria-label="Log a carbon entry"
+        <button
+          class="tab-btn ar-highlight-tab"
+          role="tab"
+          aria-selected="false"
+          aria-controls="tab-arview"
+          id="btn-arview"
+          onclick="UI.switchTab('arview', this)"
         >
-          <div class="form-row form-row--2">
-            <div class="form-group">
-              <label for="entry-category">Category</label>
-              <select id="entry-category" required aria-required="true">
-                <option value="">-- select --</option>
-                <optgroup label="Debits (Emissions)">
-                  <option value="car">Car journey</option>
-                  <option value="flight">Flight</option>
-                  <option value="meatmeal">Meal with meat</option>
-                  <option value="vegmeal">Vegetarian meal</option>
-                  <option value="electricbill">Electricity bill</option>
-                  <option value="gasbill">Gas / LPG bill</option>
-                  <option value="online_order">Online shopping order</option>
-                  <option value="custom_debit">Custom emission (kg CO2)</option>
-                </optgroup>
-                <optgroup label="Credits (Offsets)">
-                  <option value="tree">Tree planted</option>
-                  <option value="transit">Public transit trip</option>
-                  <option value="solar">Solar energy (kWh)</option>
-                  <option value="custom_credit">Custom offset (kg CO2)</option>
-                </optgroup>
-              </select>
-            </div>
-            <div class="form-group">
-              <label for="entry-amount">Amount / Quantity</label>
-              <input
-                type="number"
-                id="entry-amount"
-                placeholder="e.g. 50"
-                min="0"
-                step="0.1"
-                required
-                aria-required="true"
-              />
-              <span class="unit-hint" id="unit-hint"
-                >select a category first</span
-              >
-            </div>
-          </div>
-          <div class="form-row form-row--3">
-            <div class="form-group form-group--wide">
-              <label for="entry-desc">Description (optional)</label>
-              <input
-                type="text"
-                id="entry-desc"
-                placeholder="e.g. Drive to office, Mumbai to Delhi flight"
-                maxlength="120"
-              />
-            </div>
-            <div class="form-group">
-              <label for="entry-date">Date</label>
-              <input
-                type="date"
-                id="entry-date"
-                required
-                aria-required="true"
-              />
-            </div>
-          </div>
-          <div
-            class="form-error"
-            id="form-error"
-            role="alert"
-            aria-live="polite"
-            hidden
-          ></div>
-          <button type="submit" class="btn-primary">
-            <span class="btn-icon">+</span> Post to Ledger
-          </button>
-        </form>
+          [04] 3D_AR_SPATIAL_VIEW
+        </button>
+      </nav>
 
-        <p class="section-label">Ledger entries</p>
-        <div
-          class="table-wrapper"
-          role="region"
-          aria-label="Carbon journal entries"
-          tabindex="0"
-        >
-          <table
-            class="ledger-table"
-            id="ledger-table"
-            aria-label="Carbon journal entries table"
-          >
-            <thead>
-              <tr>
-                <th scope="col">Date</th>
-                <th scope="col">Description</th>
-                <th scope="col" class="col-number">
-                  Debit (kg CO<sub>2</sub>)
-                </th>
-                <th scope="col" class="col-number">
-                  Credit (kg CO<sub>2</sub>)
-                </th>
-                <th scope="col" class="col-action">Remove</th>
-              </tr>
-            </thead>
-            <tbody id="ledger-tbody">
-              <tr id="empty-row">
-                <td colspan="5" class="empty-row">
-                  No entries yet. Post your first transaction above.
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+      <hr class="ledger-divider" />
 
-        <!-- AI Insight Box -->
-        <div class="ai-insight-box" aria-live="polite" aria-label="AI insight">
-          <span class="ai-label" id="ai-provider-label"
-            >AI insight (Claude)</span
-          >
-          <div
-            id="ai-insight"
-            class="ai-insight-text ai-insight-text--placeholder"
-          >
-            Post your first entry and the AI will analyse your carbon position.
+      <div id="tab-journal" class="tab-panel active" role="tabpanel">
+        <div class="journal-grid-layout">
+          <div class="ledger-card input-form-card">
+            <h3 class="card-heading">LOG_NEW_ACTIVITY</h3>
+            <form id="journalForm" onsubmit="Journal.handleSubmit(event)">
+              <div class="form-group">
+                <label for="activityCategory">CATEGORY</label>
+                <select
+                  id="activityCategory"
+                  required
+                  onchange="UI.handleCategoryChange()"
+                >
+                  <option value="transport">
+                    Transport (Car, Bike, Flight)
+                  </option>
+                  <option value="energy">
+                    Energy & Utilities (Electricity, LPG)
+                  </option>
+                  <option value="food">Dietary & Food Consumption</option>
+                  <option value="shopping">Shopping & Consumables</option>
+                  <option value="offsets">
+                    Offsets & Environmental Credits
+                  </option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="activitySubtype" id="subtypeLabel">SUBTYPE</label>
+                <select id="activitySubtype" required></select>
+              </div>
+
+              <div class="form-group">
+                <label for="activityValue" id="valueLabel"
+                  >QUANTITY / VALUE</label
+                >
+                <div class="input-unit-wrapper">
+                  <input
+                    type="number"
+                    id="activityValue"
+                    step="any"
+                    min="0.01"
+                    required
+                    placeholder="0.00"
+                  />
+                  <span id="unitBadge" class="unit-badge">unit</span>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="activityNotes">CONTEXTUAL_NOTES (OPTIONAL)</label>
+                <input
+                  type="text"
+                  id="activityNotes"
+                  placeholder="e.g., Commuted to corporate park in heavy traffic"
+                />
+              </div>
+
+              <button type="submit" class="btn-primary-ledger">
+                POST_TO_LEDGER
+              </button>
+            </form>
+          </div>
+
+          <div class="ledger-card table-view-card">
+            <h3 class="card-heading">DOUBLE_ENTRY_EMISSION_BOOKKEEPING</h3>
+            <div class="table-responsive">
+              <table class="real-ledger-table">
+                <thead>
+                  <tr>
+                    <th>TIMESTAMP</th>
+                    <th>DESCRIPTION</th>
+                    <th>CATEGORY</th>
+                    <th>DEBIT (+)</th>
+                    <th>CREDIT (-)</th>
+                    <th>ACTION</th>
+                  </tr>
+                </thead>
+                <tbody id="ledgerItemsRows"></tbody>
+              </table>
+            </div>
           </div>
         </div>
 
-        <div class="ledger-folio">
-          <span>Carbon Ledger &bull; Personal Accounts</span>
-          <span id="folio-total">Carried forward: 0.0 kg CO<sub>2</sub></span>
+        <div id="aiInsightAlertPanel" class="ai-insight-panel hidden">
+          <div class="ai-panel-header">
+            <span class="ai-status-indicator pulse"></span>
+            <span id="aiPanelTitle">AI_INSIGHT_ENGINE_RESPONSE</span>
+          </div>
+          <p id="aiInsightContentText">
+            Awaiting next ledger entry posting sequence...
+          </p>
         </div>
       </div>
 
-      <!-- Analysis Tab -->
-      <div
-        id="tab-analysis"
-        class="tab-panel"
-        role="tabpanel"
-        aria-labelledby="btn-analysis"
-        hidden
-      >
-        <p class="section-label">Emissions by category</p>
-        <div
-          class="impact-bars"
-          id="category-bars"
-          aria-label="Emissions by category"
-        >
-          <p class="empty-state">Log entries to see breakdown.</p>
+      <div id="tab-analysis" class="tab-panel" role="tabpanel">
+        <div class="analysis-grid">
+          <div class="ledger-card">
+            <h3 class="card-heading">CATEGORY_EXPOSURE_WEIGHTS</h3>
+            <div id="categoryBreakdownBars" class="bars-container"></div>
+          </div>
+          <div class="ledger-card">
+            <h3 class="card-heading">PARIS_AGREEMENT_BENCHMARK</h3>
+            <div class="benchmark-comparison-box">
+              <div class="benchmark-metric">
+                <span class="b-val" id="userDailyAvg">0.00 kg</span>
+                <span class="b-lbl">Your Computed Daily Avg</span>
+              </div>
+              <div class="benchmark-separator">vs</div>
+              <div class="benchmark-metric">
+                <span class="b-val">5.56 kg</span>
+                <span class="b-lbl">National Targets Limit (India)</span>
+              </div>
+            </div>
+          </div>
         </div>
-
-        <p class="section-label">Monthly ledger (last 6 months)</p>
-        <div
-          class="monthly-grid"
-          id="monthly-grid"
-          aria-label="Monthly carbon totals"
-        ></div>
-
-        <p class="section-label">Benchmark</p>
-        <table
-          class="benchmark-table"
-          aria-label="Carbon footprint benchmark comparison"
-        >
-          <tbody>
-            <tr>
-              <td>Your monthly net</td>
-              <td id="my-monthly" class="bench-val bench-val--mine">0 kg</td>
-            </tr>
-            <tr>
-              <td>India average (monthly)</td>
-              <td class="bench-val bench-val--warn">133 kg</td>
-            </tr>
-            <tr>
-              <td>Global average (monthly)</td>
-              <td class="bench-val bench-val--danger">375 kg</td>
-            </tr>
-            <tr>
-              <td>1.5&deg;C Paris target (monthly)</td>
-              <td class="bench-val bench-val--good">167 kg</td>
-            </tr>
-          </tbody>
-        </table>
       </div>
 
-      <!-- Actions Tab -->
-      <div
-        id="tab-actions"
-        class="tab-panel"
-        role="tabpanel"
-        aria-labelledby="btn-actions"
-        hidden
-      >
-        <p class="section-label">High-impact reductions</p>
-        <div
-          class="suggest-actions"
-          id="actions-grid"
-          aria-label="Suggested carbon reduction actions"
-        ></div>
+      <div id="tab-actions" class="tab-panel" role="tabpanel">
+        <h3 class="section-heading-mono">RECOMMENDED_MITIGATION_STRATEGIES</h3>
+        <div id="mitigationCardsGrid" class="actions-cards-grid"></div>
+      </div>
 
-        <p class="section-label">Ask the AI planner</p>
-        <div class="ai-planner">
-          <input
-            type="text"
-            id="action-query"
-            placeholder="e.g. How do I reduce my flight emissions?"
-            aria-label="Ask the AI planner a question"
-          />
-          <button class="btn-primary" onclick="Actions.askAI()" type="button">
-            Ask AI &nearr;
-          </button>
-        </div>
-        <div class="ai-insight-box" aria-live="polite" style="margin-top: 1rem">
-          <span class="ai-label" id="ai-actions-label">AI planner</span>
-          <div
-            id="ai-action-answer"
-            class="ai-insight-text ai-insight-text--placeholder"
-          >
-            Your answer will appear here.
+      <div id="tab-arview" class="tab-panel" role="tabpanel">
+        <div class="ledger-card spatial-view-card">
+          <h3 class="card-heading">SPATIAL_FOOTPRINT_PROJECTION</h3>
+          <p class="spatial-description">
+            Visualize your accumulated ledger liabilities as structural 3D
+            objects scaled natively into physical spatial structures.
+          </p>
+          <div class="spatial-frame-container">
+            <iframe
+              src="ar.html"
+              class="spatial-iframe"
+              title="Spatial View Canvas"
+            ></iframe>
+          </div>
+          <div class="spatial-actions-row">
+            <a href="ar.html" target="_blank" class="btn-secondary-ledger">
+              ⚡ OPEN_FULL_SCREEN_XR_MODE
+            </a>
           </div>
         </div>
       </div>
     </main>
 
-    <footer class="site-footer" role="contentinfo">
-      <div class="container">
-        <span>Carbon Ledger &bull; Built for Hack2Skill Challenge 3</span>
-        <a
-          href="ar.html"
-          class="ar-footer-link"
-          aria-label="View your carbon footprint in AR"
-        >
-          &#x25A6; View in AR / 3D
-        </a>
-        <span>Emission factors: IPCC, DEFRA, CEA India</span>
-      </div>
+    <footer class="ledger-footer-frame">
+      <p>
+        © 2026 CARBON_LEDGER_SYSTEMS. SECURE DISTRIBUTED PROXY PATTERN LOGS
+        ACTIVE.
+      </p>
     </footer>
 
-    <!-- Scripts (module pattern for evaluator) -->
     <script src="js/config.js"></script>
     <script src="js/store.js"></script>
     <script src="js/ai.js"></script>
     <script src="js/journal.js"></script>
     <script src="js/analysis.js"></script>
     <script src="js/actions.js"></script>
-    <script src="js/settings.js"></script>
     <script src="js/ui.js"></script>
     <script src="js/app.js"></script>
   </body>
