@@ -6,7 +6,6 @@
 
 const AI = (() => {
   // Change this to your Render backend URL after deploying
-
   const BACKEND_URL =
     window.CARBON_LEDGER_BACKEND_URL ||
     "https://carbon-ledger-4i6w.onrender.com";
