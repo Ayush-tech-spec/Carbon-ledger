@@ -1,266 +1,184 @@
 <!doctype html>
-<html lang="en" data-theme="light">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Carbon Ledger — Financial-Style Footprint Accounting</title>
-    <link rel="stylesheet" href="css/styles.css" />
+    <title>Carbon Ledger</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Plus Jakarta Sans gives us that clean, geometric, modern look seen in the reference -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400;1,700&family=Inter:wght@300;400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;800&display=swap"
       rel="stylesheet"
     />
+
+    <style>
+      body {
+        font-family: "Plus Jakarta Sans", sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #0d1a11; /* Fallback color */
+      }
+
+      /* 
+         * Background image simulating the lush green hosta leaves.
+         * Using a high-quality Unsplash image of deep green leaves.
+         */
+      .bg-leaves {
+        background-image: url("https://images.unsplash.com/photo-1536147116438-62679a5e01f2?q=80&w=2000&auto=format&fit=crop");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+      }
+
+      /* 
+         * The core glassmorphism effect.
+         * Combines a semi-transparent background with a heavy backdrop blur.
+         */
+      .glass-panel {
+        /* A gradient that is slightly lighter top-left, darker bottom-right */
+        background: linear-gradient(
+          135deg,
+          rgba(45, 65, 45, 0.4) 0%,
+          rgba(15, 25, 15, 0.6) 100%
+        );
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        /* Subtle white border to create the glass edge highlight */
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.6);
+      }
+
+      /* 
+         * Inner image styling to match the reference.
+         */
+      .inner-image {
+        background-image: url("https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=800&auto=format&fit=crop");
+        background-size: cover;
+        background-position: center;
+        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
+      }
+
+      /* Custom thin line */
+      .custom-hr {
+        border: none;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.3);
+        margin-top: 0.75rem;
+        margin-bottom: 1.25rem;
+      }
+    </style>
   </head>
-  <body>
-    <header class="ledger-header">
-      <div class="header-container">
-        <div class="logo-area">
-          <h1>CARBON LEDGER</h1>
-          <span class="version-tag">v3.0 // HACKATHON_EDITION</span>
-        </div>
 
-        <div class="header-controls">
-          <div class="model-toggle-zone">
-            <label for="modelSelector">ACTIVE_CORE:</label>
-            <select id="modelSelector" class="ledger-select-sm">
-              <option value="grok" selected>Grok (xAI)</option>
-              <option value="claude">Claude (Anthropic)</option>
-            </select>
-          </div>
-
-          <button
-            id="themeToggleBtn"
-            class="theme-toggle-btn"
-            aria-label="Toggle dark mode"
+  <body
+    class="bg-leaves min-h-screen w-full flex items-center justify-center p-4 sm:p-8 md:p-12"
+  >
+    <!-- The main glass card container -->
+    <div
+      class="glass-panel rounded-[2.5rem] w-full max-w-5xl text-white p-8 sm:p-10 md:p-14 flex flex-col relative overflow-hidden"
+    >
+      <!-- Top Header Navigation -->
+      <header class="flex items-center gap-4 mb-10 md:mb-16 z-10">
+        <!-- Hamburger Menu Icon -->
+        <button
+          class="hover:opacity-70 transition-opacity focus:outline-none"
+          aria-label="Menu"
+        >
+          <svg
+            class="w-7 h-7"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
           >
-            <span class="mode-icon-sun">☀️</span>
-            <span class="mode-icon-moon">🌙</span>
-          </button>
-        </div>
-      </div>
-    </header>
-
-    <main class="ledger-main-container">
-      <section class="balance-sheet-ribbon">
-        <div class="ribbon-tile text-danger">
-          <span class="tile-label">TOTAL_DEBITS (EMISSIONS)</span>
-          <span class="tile-value" id="totalDebits">0.00 kg</span>
-        </div>
-        <div class="ribbon-tile text-success">
-          <span class="tile-label">TOTAL_CREDITS (OFFSETS)</span>
-          <span class="tile-value" id="totalCredits">0.00 kg</span>
-        </div>
-        <div class="ribbon-tile text-warning">
-          <span class="tile-label">NET_CARBON_BALANCE</span>
-          <span class="tile-value" id="netBalance">0.00 kg</span>
-        </div>
-      </section>
-
-      <nav class="ledger-tabs-nav" role="tablist">
-        <button
-          class="tab-btn active"
-          role="tab"
-          aria-selected="true"
-          aria-controls="tab-journal"
-          id="btn-journal"
-          onclick="UI.switchTab('journal', this)"
-        >
-          [01] DAILY_JOURNAL
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M4 6h16M4 12h16M4 18h16"
+            ></path>
+          </svg>
         </button>
-        <button
-          class="tab-btn"
-          role="tab"
-          aria-selected="false"
-          aria-controls="tab-analysis"
-          id="btn-analysis"
-          onclick="UI.switchTab('analysis', this)"
+        <span
+          class="tracking-[0.15em] text-xs sm:text-sm font-medium uppercase text-gray-200"
         >
-          [02] METRIC_ANALYSIS
-        </button>
-        <button
-          class="tab-btn"
-          role="tab"
-          aria-selected="false"
-          aria-controls="tab-actions"
-          id="btn-actions"
-          onclick="UI.switchTab('actions', this)"
+          About Life and Footprints
+        </span>
+      </header>
+
+      <!-- Main Content Area: Grid/Flex Layout -->
+      <main
+        class="flex flex-col md:flex-row gap-10 md:gap-16 lg:gap-24 items-stretch z-10"
+      >
+        <!-- Left Side: Inner Decorative Image -->
+        <div
+          class="w-full md:w-[35%] lg:w-[320px] flex-shrink-0 flex items-center"
         >
-          [03] REDUCTION_ACTIONS
-        </button>
-        <button
-          class="tab-btn ar-highlight-tab"
-          role="tab"
-          aria-selected="false"
-          aria-controls="tab-arview"
-          id="btn-arview"
-          onclick="UI.switchTab('arview', this)"
-        >
-          [04] 3D_AR_SPATIAL_VIEW
-        </button>
-      </nav>
+          <div
+            class="inner-image w-full h-[250px] sm:h-[350px] md:h-[420px] rounded-3xl transition-transform duration-700 hover:scale-[1.02]"
+          ></div>
+        </div>
 
-      <hr class="ledger-divider" />
+        <!-- Right Side: Text and Typography -->
+        <div class="w-full md:w-[65%] flex flex-col justify-center">
+          <!-- Huge Header Title -->
+          <h1
+            class="text-6xl sm:text-7xl lg:text-[5.5rem] font-extrabold leading-[1.1] mb-10 tracking-tight"
+          >
+            Track<br />Emissions
+          </h1>
 
-      <div id="tab-journal" class="tab-panel active" role="tabpanel">
-        <div class="journal-grid-layout">
-          <div class="ledger-card input-form-card">
-            <h3 class="card-heading">LOG_NEW_ACTIVITY</h3>
-            <form id="journalForm" onsubmit="Journal.handleSubmit(event)">
-              <div class="form-group">
-                <label for="activityCategory">CATEGORY</label>
-                <select
-                  id="activityCategory"
-                  required
-                  onchange="UI.handleCategoryChange()"
-                >
-                  <option value="transport">
-                    Transport (Car, Bike, Flight)
-                  </option>
-                  <option value="energy">
-                    Energy & Utilities (Electricity, LPG)
-                  </option>
-                  <option value="food">Dietary & Food Consumption</option>
-                  <option value="shopping">Shopping & Consumables</option>
-                  <option value="offsets">
-                    Offsets & Environmental Credits
-                  </option>
-                </select>
-              </div>
+          <!-- Sub-section -->
+          <div class="max-w-md ml-0 md:ml-2">
+            <h2 class="text-2xl sm:text-3xl font-normal text-white">
+              Daily ledger
+            </h2>
+            <hr class="custom-hr w-4/5 md:w-3/4" />
 
-              <div class="form-group">
-                <label for="activitySubtype" id="subtypeLabel">SUBTYPE</label>
-                <select id="activitySubtype" required></select>
-              </div>
+            <p
+              class="text-sm sm:text-base text-gray-200 leading-relaxed font-light mb-8 md:mb-16"
+            >
+              A carbon ledger is an extremely resilient system that helps you
+              track your greenhouse gas impact across a variety of conditions,
+              from transport to energy.
+              <br /><br />
+              In some countries, integrating daily carbon tracking into personal
+              routines is already harvested and used for ecological benefits.
+            </p>
+          </div>
 
-              <div class="form-group">
-                <label for="activityValue" id="valueLabel"
-                  >QUANTITY / VALUE</label
-                >
-                <div class="input-unit-wrapper">
-                  <input
-                    type="number"
-                    id="activityValue"
-                    step="any"
-                    min="0.01"
-                    required
-                    placeholder="0.00"
-                  />
-                  <span id="unitBadge" class="unit-badge">unit</span>
-                </div>
-              </div>
+          <!-- Bottom Action Row (Inside Content Area to match reference) -->
+          <div
+            class="flex flex-col sm:flex-row items-start sm:items-center gap-6 md:gap-8 mt-auto ml-0 md:ml-2"
+          >
+            <span class="text-sm text-gray-200 font-light whitespace-nowrap"
+              >Connect with nature</span
+            >
 
-              <div class="form-group">
-                <label for="activityNotes">CONTEXTUAL_NOTES (OPTIONAL)</label>
-                <input
-                  type="text"
-                  id="activityNotes"
-                  placeholder="e.g., Commuted to corporate park in heavy traffic"
-                />
-              </div>
-
-              <button type="submit" class="btn-primary-ledger">
-                POST_TO_LEDGER
+            <div class="flex flex-wrap gap-4">
+              <!-- Outline Button -->
+              <button
+                class="px-6 py-2.5 rounded-full border border-gray-300 text-sm font-medium text-gray-100 hover:bg-white/10 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-white/50"
+              >
+                types of impact
               </button>
-            </form>
-          </div>
 
-          <div class="ledger-card table-view-card">
-            <h3 class="card-heading">DOUBLE_ENTRY_EMISSION_BOOKKEEPING</h3>
-            <div class="table-responsive">
-              <table class="real-ledger-table">
-                <thead>
-                  <tr>
-                    <th>TIMESTAMP</th>
-                    <th>DESCRIPTION</th>
-                    <th>CATEGORY</th>
-                    <th>DEBIT (+)</th>
-                    <th>CREDIT (-)</th>
-                    <th>ACTION</th>
-                  </tr>
-                </thead>
-                <tbody id="ledgerItemsRows"></tbody>
-              </table>
+              <!-- Solid Button -->
+              <button
+                class="px-8 py-2.5 rounded-full bg-[#f4f7f0] text-green-950 text-sm font-bold hover:bg-white transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-white/50 shadow-lg"
+              >
+                Ledger
+              </button>
             </div>
           </div>
         </div>
+      </main>
 
-        <div id="aiInsightAlertPanel" class="ai-insight-panel hidden">
-          <div class="ai-panel-header">
-            <span class="ai-status-indicator pulse"></span>
-            <span id="aiPanelTitle">AI_INSIGHT_ENGINE_RESPONSE</span>
-          </div>
-          <p id="aiInsightContentText">
-            Awaiting next ledger entry posting sequence...
-          </p>
-        </div>
-      </div>
-
-      <div id="tab-analysis" class="tab-panel" role="tabpanel">
-        <div class="analysis-grid">
-          <div class="ledger-card">
-            <h3 class="card-heading">CATEGORY_EXPOSURE_WEIGHTS</h3>
-            <div id="categoryBreakdownBars" class="bars-container"></div>
-          </div>
-          <div class="ledger-card">
-            <h3 class="card-heading">PARIS_AGREEMENT_BENCHMARK</h3>
-            <div class="benchmark-comparison-box">
-              <div class="benchmark-metric">
-                <span class="b-val" id="userDailyAvg">0.00 kg</span>
-                <span class="b-lbl">Your Computed Daily Avg</span>
-              </div>
-              <div class="benchmark-separator">vs</div>
-              <div class="benchmark-metric">
-                <span class="b-val">5.56 kg</span>
-                <span class="b-lbl">National Targets Limit (India)</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="tab-actions" class="tab-panel" role="tabpanel">
-        <h3 class="section-heading-mono">RECOMMENDED_MITIGATION_STRATEGIES</h3>
-        <div id="mitigationCardsGrid" class="actions-cards-grid"></div>
-      </div>
-
-      <div id="tab-arview" class="tab-panel" role="tabpanel">
-        <div class="ledger-card spatial-view-card">
-          <h3 class="card-heading">SPATIAL_FOOTPRINT_PROJECTION</h3>
-          <p class="spatial-description">
-            Visualize your accumulated ledger liabilities as structural 3D
-            objects scaled natively into physical spatial structures.
-          </p>
-          <div class="spatial-frame-container">
-            <iframe
-              src="ar.html"
-              class="spatial-iframe"
-              title="Spatial View Canvas"
-            ></iframe>
-          </div>
-          <div class="spatial-actions-row">
-            <a href="ar.html" target="_blank" class="btn-secondary-ledger">
-              ⚡ OPEN_FULL_SCREEN_XR_MODE
-            </a>
-          </div>
-        </div>
-      </div>
-    </main>
-
-    <footer class="ledger-footer-frame">
-      <p>
-        © 2026 CARBON_LEDGER_SYSTEMS. SECURE DISTRIBUTED PROXY PATTERN LOGS
-        ACTIVE.
-      </p>
-    </footer>
-
-    <script src="js/config.js"></script>
-    <script src="js/store.js"></script>
-    <script src="js/ai.js"></script>
-    <script src="js/journal.js"></script>
-    <script src="js/analysis.js"></script>
-    <script src="js/actions.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/app.js"></script>
+      <!-- Optional: A very subtle glow effect positioned absolutely behind text for readability -->
+      <div
+        class="absolute top-1/2 right-0 w-96 h-96 bg-green-500/10 rounded-full blur-[100px] pointer-events-none -translate-y-1/2 translate-x-1/3"
+      ></div>
+    </div>
   </body>
 </html>
