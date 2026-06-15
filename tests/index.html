@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Carbon Ledger - Test Suite</title>
+  <style>
+    body { font-family: 'Courier New', monospace; background: #0a0a0a; color: #e0e0e0; padding: 2rem; }
+    h1   { color: #4caf50; font-size: 1.1rem; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 1.5rem; }
+    .suite     { margin-bottom: 1.5rem; }
+    .suite-name{ color: #90caf9; font-weight: bold; margin-bottom: 0.5rem; }
+    .pass { color: #4caf50; }
+    .fail { color: #f44336; }
+    .skip { color: #888; }
+    .summary { margin-top: 2rem; border-top: 1px solid #333; padding-top: 1rem; font-size: 1rem; }
+    .summary.all-pass { color: #4caf50; }
+    .summary.has-fail  { color: #f44336; }
+    pre { font-size: 11px; color: #f44336; margin: 4px 0 4px 20px; }
+  </style>
+</head>
+<body>
+  <h1>Carbon Ledger / Test Suite</h1>
+  <div id="output"></div>
+  <div class="summary" id="summary"></div>
+
+  <!-- Load source modules (DOM-independent parts only) -->
+  <script src="../js/config.js"></script>
+  <script src="../js/store.js"></script>
+
+  <!-- Test framework (tiny, zero deps) -->
+  <script src="runner.js"></script>
+
+  <!-- Test suites -->
+  <script src="config.test.js"></script>
+  <script src="store.test.js"></script>
+  <script src="emission.test.js"></script>
+  <script src="utils.test.js"></script>
+
+  <!-- Run -->
+  <script> TestRunner.run(); </script>
+</body>
+</html>
