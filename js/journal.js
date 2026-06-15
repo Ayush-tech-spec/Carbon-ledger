@@ -114,8 +114,8 @@ const Journal = (() => {
     _isAIThinking = true;
 
     const box = document.getElementById('ai-insight');
-    box.className = 'ai-insight-text';
-    box.innerHTML = `<span class="ai-thinking">Analysing <span class="dot-pulse"><span></span><span></span><span></span></span></span>`;
+    box.className = 'insight-text';
+    UI.setInsightState('insight-dot','thinking'); box.innerHTML = `<span class="ai-thinking">Analysing <span class="dot-pulse"><span></span><span></span><span></span></span></span>`;
 
     const providerName = CONFIG.AI_PROVIDERS[document.getElementById('model-select')?.value || 'claude']?.name || 'AI';
     document.getElementById('ai-provider-label').textContent = `AI insight (${providerName})`;
@@ -127,10 +127,10 @@ const Journal = (() => {
 
     try {
       const text = await AI.ask(system, prompt);
-      box.textContent = text;
+      box.textContent = text; UI.setInsightState('insight-dot','done');
     } catch (err) {
       const net = Store.getTotals().net;
-      box.className = 'ai-insight-text ai-insight-text--placeholder';
+      box.className = 'insight-text insight-text--placeholder'; UI.setInsightState('insight-dot','error');
       box.textContent = `Entry posted. ${err.message || 'AI insight unavailable.'} Net position: ${net.toFixed(1)} kg CO\u2082.`;
     }
 

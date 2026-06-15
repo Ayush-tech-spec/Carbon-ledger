@@ -1,184 +1,281 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Carbon Ledger</title>
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Carbon Ledger | Personal Carbon Accounting</title>
+  <meta name="description" content="Track, understand, and reduce your carbon footprint using a double-entry ledger system with AI-powered insights." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <!-- Plus Jakarta Sans gives us that clean, geometric, modern look seen in the reference -->
-    <link
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;800&display=swap"
-      rel="stylesheet"
-    />
+  <!-- Header -->
+  <header class="header" role="banner">
+    <div class="container">
+      <div class="header-inner">
 
-    <style>
-      body {
-        font-family: "Plus Jakarta Sans", sans-serif;
-        margin: 0;
-        padding: 0;
-        background-color: #0d1a11; /* Fallback color */
-      }
-
-      /* 
-         * Background image simulating the lush green hosta leaves.
-         * Using a high-quality Unsplash image of deep green leaves.
-         */
-      .bg-leaves {
-        background-image: url("https://images.unsplash.com/photo-1536147116438-62679a5e01f2?q=80&w=2000&auto=format&fit=crop");
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-      }
-
-      /* 
-         * The core glassmorphism effect.
-         * Combines a semi-transparent background with a heavy backdrop blur.
-         */
-      .glass-panel {
-        /* A gradient that is slightly lighter top-left, darker bottom-right */
-        background: linear-gradient(
-          135deg,
-          rgba(45, 65, 45, 0.4) 0%,
-          rgba(15, 25, 15, 0.6) 100%
-        );
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        /* Subtle white border to create the glass edge highlight */
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.6);
-      }
-
-      /* 
-         * Inner image styling to match the reference.
-         */
-      .inner-image {
-        background-image: url("https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?q=80&w=800&auto=format&fit=crop");
-        background-size: cover;
-        background-position: center;
-        box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.2);
-      }
-
-      /* Custom thin line */
-      .custom-hr {
-        border: none;
-        height: 1px;
-        background: rgba(255, 255, 255, 0.3);
-        margin-top: 0.75rem;
-        margin-bottom: 1.25rem;
-      }
-    </style>
-  </head>
-
-  <body
-    class="bg-leaves min-h-screen w-full flex items-center justify-center p-4 sm:p-8 md:p-12"
-  >
-    <!-- The main glass card container -->
-    <div
-      class="glass-panel rounded-[2.5rem] w-full max-w-5xl text-white p-8 sm:p-10 md:p-14 flex flex-col relative overflow-hidden"
-    >
-      <!-- Top Header Navigation -->
-      <header class="flex items-center gap-4 mb-10 md:mb-16 z-10">
-        <!-- Hamburger Menu Icon -->
-        <button
-          class="hover:opacity-70 transition-opacity focus:outline-none"
-          aria-label="Menu"
-        >
-          <svg
-            class="w-7 h-7"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-              d="M4 6h16M4 12h16M4 18h16"
-            ></path>
-          </svg>
-        </button>
-        <span
-          class="tracking-[0.15em] text-xs sm:text-sm font-medium uppercase text-gray-200"
-        >
-          About Life and Footprints
-        </span>
-      </header>
-
-      <!-- Main Content Area: Grid/Flex Layout -->
-      <main
-        class="flex flex-col md:flex-row gap-10 md:gap-16 lg:gap-24 items-stretch z-10"
-      >
-        <!-- Left Side: Inner Decorative Image -->
-        <div
-          class="w-full md:w-[35%] lg:w-[320px] flex-shrink-0 flex items-center"
-        >
-          <div
-            class="inner-image w-full h-[250px] sm:h-[350px] md:h-[420px] rounded-3xl transition-transform duration-700 hover:scale-[1.02]"
-          ></div>
-        </div>
-
-        <!-- Right Side: Text and Typography -->
-        <div class="w-full md:w-[65%] flex flex-col justify-center">
-          <!-- Huge Header Title -->
-          <h1
-            class="text-6xl sm:text-7xl lg:text-[5.5rem] font-extrabold leading-[1.1] mb-10 tracking-tight"
-          >
-            Track<br />Emissions
-          </h1>
-
-          <!-- Sub-section -->
-          <div class="max-w-md ml-0 md:ml-2">
-            <h2 class="text-2xl sm:text-3xl font-normal text-white">
-              Daily ledger
-            </h2>
-            <hr class="custom-hr w-4/5 md:w-3/4" />
-
-            <p
-              class="text-sm sm:text-base text-gray-200 leading-relaxed font-light mb-8 md:mb-16"
-            >
-              A carbon ledger is an extremely resilient system that helps you
-              track your greenhouse gas impact across a variety of conditions,
-              from transport to energy.
-              <br /><br />
-              In some countries, integrating daily carbon tracking into personal
-              routines is already harvested and used for ecological benefits.
-            </p>
+        <div class="header-brand">
+          <div class="brand-icon" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+              <rect width="28" height="28" rx="6" fill="var(--olive-500)"/>
+              <path d="M7 20 L14 8 L21 20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M9.5 16 H18.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
           </div>
-
-          <!-- Bottom Action Row (Inside Content Area to match reference) -->
-          <div
-            class="flex flex-col sm:flex-row items-start sm:items-center gap-6 md:gap-8 mt-auto ml-0 md:ml-2"
-          >
-            <span class="text-sm text-gray-200 font-light whitespace-nowrap"
-              >Connect with nature</span
-            >
-
-            <div class="flex flex-wrap gap-4">
-              <!-- Outline Button -->
-              <button
-                class="px-6 py-2.5 rounded-full border border-gray-300 text-sm font-medium text-gray-100 hover:bg-white/10 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-white/50"
-              >
-                types of impact
-              </button>
-
-              <!-- Solid Button -->
-              <button
-                class="px-8 py-2.5 rounded-full bg-[#f4f7f0] text-green-950 text-sm font-bold hover:bg-white transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-white/50 shadow-lg"
-              >
-                Ledger
-              </button>
-            </div>
+          <div>
+            <h1 class="brand-name">Carbon Ledger</h1>
+            <p class="brand-sub">Every tonne accounted for &bull; <span id="current-month">June 2026</span></p>
           </div>
         </div>
-      </main>
 
-      <!-- Optional: A very subtle glow effect positioned absolutely behind text for readability -->
-      <div
-        class="absolute top-1/2 right-0 w-96 h-96 bg-green-500/10 rounded-full blur-[100px] pointer-events-none -translate-y-1/2 translate-x-1/3"
-      ></div>
+        <div class="header-controls">
+          <div class="model-switcher">
+            <label class="model-label" for="model-select">AI</label>
+            <select id="model-select" class="model-select" aria-label="Select AI model">
+              <option value="claude">Claude</option>
+              <option value="grok">Grok</option>
+            </select>
+          </div>
+          <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark/light mode" onclick="toggleTheme()">
+            <span class="theme-icon" id="theme-icon">☀</span>
+          </button>
+        </div>
+
+      </div>
     </div>
-  </body>
+  </header>
+
+  <!-- Balance Strip -->
+  <section class="balance-strip" role="region" aria-label="Account summary">
+    <div class="container">
+      <div class="balance-grid">
+        <div class="balance-card">
+          <div class="balance-card-label">Total Emitted</div>
+          <div class="balance-card-value debit" id="total-debit">0.0</div>
+          <div class="balance-card-unit">kg CO<sub>2</sub></div>
+        </div>
+        <div class="balance-card balance-card--mid">
+          <div class="balance-card-label">Total Offset</div>
+          <div class="balance-card-value credit" id="total-credit">0.0</div>
+          <div class="balance-card-unit">kg CO<sub>2</sub></div>
+        </div>
+        <div class="balance-card">
+          <div class="balance-card-label">Net Balance</div>
+          <div class="balance-card-value net" id="net-balance">0.0</div>
+          <div class="balance-card-unit">kg CO<sub>2</sub> outstanding</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main -->
+  <main class="main-content">
+    <div class="container">
+
+      <!-- Tabs -->
+      <nav class="tabs" role="tablist" aria-label="Main navigation">
+        <button class="tab-btn active" role="tab" aria-selected="true"  aria-controls="tab-journal"  id="btn-journal"  onclick="UI.switchTab('journal', this)">Journal</button>
+        <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-analysis" id="btn-analysis" onclick="UI.switchTab('analysis', this)">Analysis</button>
+        <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-actions"  id="btn-actions"  onclick="UI.switchTab('actions', this)">Actions</button>
+        <a href="ar.html" class="tab-btn tab-btn--ar" aria-label="View in AR / 3D">AR / 3D &#x2197;</a>
+      </nav>
+
+      <!-- Journal Tab -->
+      <div id="tab-journal" class="tab-panel active" role="tabpanel" aria-labelledby="btn-journal">
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Log an entry</span>
+            <span class="card-hint">Debits = emissions, Credits = offsets</span>
+          </div>
+          <form id="entry-form" onsubmit="Journal.postEntry(event)" novalidate aria-label="Log a carbon entry">
+            <div class="form-grid form-grid--2">
+              <div class="form-group">
+                <label for="entry-category">Category</label>
+                <select id="entry-category" required aria-required="true">
+                  <option value="">-- select --</option>
+                  <optgroup label="Debits (Emissions)">
+                    <option value="car">Car journey</option>
+                    <option value="flight">Flight</option>
+                    <option value="meatmeal">Meal with meat</option>
+                    <option value="vegmeal">Vegetarian meal</option>
+                    <option value="electricbill">Electricity bill</option>
+                    <option value="gasbill">Gas / LPG bill</option>
+                    <option value="online_order">Online shopping order</option>
+                    <option value="custom_debit">Custom emission (kg CO2)</option>
+                  </optgroup>
+                  <optgroup label="Credits (Offsets)">
+                    <option value="tree">Tree planted</option>
+                    <option value="transit">Public transit trip</option>
+                    <option value="solar">Solar energy (kWh)</option>
+                    <option value="custom_credit">Custom offset (kg CO2)</option>
+                  </optgroup>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="entry-amount">Quantity <span class="unit-hint" id="unit-hint">select category first</span></label>
+                <input type="number" id="entry-amount" placeholder="e.g. 50" min="0" step="0.1" required aria-required="true" />
+              </div>
+            </div>
+            <div class="form-grid form-grid--3">
+              <div class="form-group form-group--wide">
+                <label for="entry-desc">Description <span class="optional">(optional)</span></label>
+                <input type="text" id="entry-desc" placeholder="e.g. Drive to office, Mumbai to Delhi flight" maxlength="120" />
+              </div>
+              <div class="form-group">
+                <label for="entry-date">Date</label>
+                <input type="date" id="entry-date" required aria-required="true" />
+              </div>
+            </div>
+            <div class="form-error" id="form-error" role="alert" aria-live="polite" hidden></div>
+            <button type="submit" class="btn-primary">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              Post to Ledger
+            </button>
+          </form>
+        </div>
+
+        <!-- AI Insight -->
+        <div class="insight-card" aria-live="polite">
+          <div class="insight-header">
+            <div class="insight-dot" id="insight-dot"></div>
+            <span class="insight-label" id="ai-provider-label">AI Insight</span>
+          </div>
+          <div id="ai-insight" class="insight-text insight-text--placeholder">
+            Post your first entry and the AI will analyse your carbon position.
+          </div>
+        </div>
+
+        <!-- Ledger Table -->
+        <div class="card card--table">
+          <div class="card-header">
+            <span class="card-title">Ledger entries</span>
+            <span class="folio-text" id="folio-total">Net: 0.0 kg CO<sub>2</sub></span>
+          </div>
+          <div class="table-wrapper" role="region" aria-label="Carbon journal entries" tabindex="0">
+            <table class="ledger-table" aria-label="Carbon journal entries table">
+              <thead>
+                <tr>
+                  <th scope="col">Date</th>
+                  <th scope="col">Description</th>
+                  <th scope="col" class="col-right">Debit kg CO<sub>2</sub></th>
+                  <th scope="col" class="col-right">Credit kg CO<sub>2</sub></th>
+                  <th scope="col" class="col-action"></th>
+                </tr>
+              </thead>
+              <tbody id="ledger-tbody">
+                <tr>
+                  <td colspan="5" class="empty-row">No entries yet. Log your first transaction above.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Analysis Tab -->
+      <div id="tab-analysis" class="tab-panel" role="tabpanel" aria-labelledby="btn-analysis" hidden>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Emissions by category</span></div>
+          <div id="category-bars" aria-label="Emissions by category">
+            <p class="empty-state">Log entries to see breakdown.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Monthly ledger (last 6 months)</span></div>
+          <div class="monthly-grid" id="monthly-grid" aria-label="Monthly carbon totals"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Benchmark</span></div>
+          <table class="benchmark-table" aria-label="Carbon footprint benchmark">
+            <tbody>
+              <tr>
+                <td>Your monthly net</td>
+                <td id="my-monthly" class="bench-val bench-mine">0 kg</td>
+              </tr>
+              <tr>
+                <td>India average (monthly)</td>
+                <td class="bench-val bench-warn">133 kg</td>
+              </tr>
+              <tr>
+                <td>Global average (monthly)</td>
+                <td class="bench-val bench-danger">375 kg</td>
+              </tr>
+              <tr>
+                <td>1.5&deg;C Paris target (monthly)</td>
+                <td class="bench-val bench-good">167 kg</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+
+      <!-- Actions Tab -->
+      <div id="tab-actions" class="tab-panel" role="tabpanel" aria-labelledby="btn-actions" hidden>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">High-impact reductions</span></div>
+          <div class="actions-grid" id="actions-grid" aria-label="Suggested carbon reduction actions"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><span class="card-title">Ask the AI planner</span></div>
+          <div class="planner-row">
+            <input type="text" id="action-query" placeholder="e.g. How do I reduce my flight emissions?" aria-label="Ask the AI planner" />
+            <button class="btn-primary" onclick="Actions.askAI()" type="button">Ask AI</button>
+          </div>
+          <div class="insight-card insight-card--inline" aria-live="polite" style="margin-top:1rem;">
+            <div class="insight-header">
+              <div class="insight-dot" id="planner-dot"></div>
+              <span class="insight-label" id="ai-actions-label">AI Planner</span>
+            </div>
+            <div id="ai-action-answer" class="insight-text insight-text--placeholder">Your answer will appear here.</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <footer class="site-footer" role="contentinfo">
+    <div class="container footer-inner">
+      <span class="footer-brand">Carbon Ledger &bull; Hack2Skill Challenge 3</span>
+      <span class="footer-note">Factors: IPCC, DEFRA, CEA India 2022-23</span>
+    </div>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/journal.js"></script>
+  <script src="js/analysis.js"></script>
+  <script src="js/actions.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
+      document.getElementById('theme-icon').textContent = isDark ? '☽' : '☀';
+      localStorage.setItem('cl-theme', isDark ? 'light' : 'dark');
+    }
+    // Restore saved theme
+    const saved = localStorage.getItem('cl-theme');
+    if (saved) {
+      document.documentElement.setAttribute('data-theme', saved);
+      document.getElementById('theme-icon').textContent = saved === 'dark' ? '☀' : '☽';
+    }
+  </script>
+</body>
 </html>
