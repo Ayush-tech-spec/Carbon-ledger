@@ -5,15 +5,16 @@
  */
 
 const AI = (() => {
-
   // Change this to your Render backend URL after deploying
-  // e.g. 'https://carbon-ledger-api.onrender.com'
-  const BACKEND_URL = window.CARBON_LEDGER_BACKEND_URL || 'http://localhost:3001';
+
+  const BACKEND_URL =
+    window.CARBON_LEDGER_BACKEND_URL ||
+    "https://carbon-ledger-4i6w.onrender.com";
 
   /** Get the currently selected provider key ('claude' | 'grok') */
   function _getProvider() {
-    const sel = document.getElementById('model-select');
-    return sel ? sel.value : 'claude';
+    const sel = document.getElementById("model-select");
+    return sel ? sel.value : "claude";
   }
 
   /**
@@ -29,16 +30,16 @@ const AI = (() => {
     let response;
     try {
       response = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          system:      systemPrompt,
+          system: systemPrompt,
           userMessage: userMessage,
-          maxTokens:   1000,
+          maxTokens: 1000,
         }),
       });
     } catch (networkErr) {
-      throw new Error('Could not reach the backend. Is it running?');
+      throw new Error("Could not reach the backend. Is it running?");
     }
 
     const data = await response.json().catch(() => ({}));
@@ -48,7 +49,7 @@ const AI = (() => {
     }
 
     if (!data.text) {
-      throw new Error('Backend returned an empty response.');
+      throw new Error("Backend returned an empty response.");
     }
 
     return data.text;
@@ -59,7 +60,9 @@ const AI = (() => {
    */
   function buildInsightSystem(totals, catTotals) {
     const topEntry = Object.entries(catTotals).sort((a, b) => b[1] - a[1])[0];
-    const topCat   = topEntry ? `${topEntry[0]} at ${topEntry[1].toFixed(1)} kg` : 'none yet';
+    const topCat = topEntry
+      ? `${topEntry[0]} at ${topEntry[1].toFixed(1)} kg`
+      : "none yet";
 
     return `You are a carbon accountant giving concise, direct insights for an Indian user. \
 Ledger totals: emitted ${totals.debit.toFixed(1)} kg, offset ${totals.credit.toFixed(1)} kg, net ${totals.net.toFixed(1)} kg CO2. \
