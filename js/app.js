@@ -4,7 +4,6 @@
  */
 
 // Set your Render backend URL here after deploying.
-// During local dev this hits localhost:3001 automatically.
 window.CARBON_LEDGER_BACKEND_URL = "https://carbon-ledger-4i6w.onrender.com";
 
 (function bootstrap() {
