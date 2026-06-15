@@ -141,7 +141,7 @@ app.post("/api/grok", aiLimiter, async (req, res) => {
         Authorization: `Bearer ${process.env.GROK_API_KEY}`,
       },
       body: JSON.stringify({
-        model: "grok-3-mini",
+        model: "grok-beta",
         max_tokens: Math.min(maxTokens || 1000, 1000),
         messages: [
           { role: "system", content: safeSystem },
