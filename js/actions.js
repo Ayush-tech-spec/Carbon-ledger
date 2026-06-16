@@ -1,74 +1,147 @@
 /**
- * actions.js
- * Renders suggested reduction actions and handles the AI planner.
+ * @fileoverview Actions module for Carbon Ledger.
+ * Renders the high-impact reduction action cards and powers the
+ * AI planner, which answers free-text carbon reduction questions
+ * in the context of the user's current ledger state.
+ *
+ * @module actions
+ * @version 1.0.0
  */
 
-const Actions = (() => {
+'use strict';
 
+/**
+ * Actions — singleton module using the Revealing Module Pattern.
+ * @namespace Actions
+ */
+const Actions = (() => {
+  'use strict';
+
+  /** @type {boolean} Guards against concurrent AI planner requests */
   let _isThinking = false;
 
-  /** Render the action cards from CONFIG */
+  // ── Private helpers ────────────────────────────────────────
+
+  /**
+   * Updates the AI planner answer box to reflect a given state.
+   *
+   * @private
+   * @param {'thinking'|'done'|'error'|null} state - Visual state for the dot indicator
+   * @param {string} html - HTML content to render inside the answer box
+   * @returns {void}
+   */
+  function _setPlannerState(state, html) {
+    const box = document.getElementById('ai-action-answer');
+    if (box) {
+      box.className = state === 'error' || state === 'thinking'
+        ? 'insight-text'
+        : 'insight-text';
+      box.innerHTML = html;
+    }
+    UI.setInsightState('planner-dot', state);
+  }
+
+  // ── Public API ─────────────────────────────────────────────
+
+  /**
+   * Initialises the Actions tab by rendering all action cards from CONFIG.
+   * Each card is a button that pre-fills the AI planner query on click.
+   * Must be called during application bootstrap.
+   *
+   * @returns {void}
+   */
   function init() {
     const grid = document.getElementById('actions-grid');
     if (!grid) return;
 
     grid.innerHTML = CONFIG.ACTIONS.map((action, i) => `
-      <button class="action-card" onclick="Actions.triggerAction(${i})" type="button" aria-label="${action.description}">
+      <button
+        class="action-card"
+        onclick="Actions.triggerAction(${i})"
+        type="button"
+        aria-label="${action.description} — estimated saving: ${action.saving}">
         <div class="action-saving">${action.saving}</div>
         <div class="action-desc">${action.description}</div>
-        <div class="action-difficulty">Difficulty: ${action.difficulty} &bull; Ask AI &nearr;</div>
-      </button>
-    `).join('');
+        <div class="action-difficulty">
+          Difficulty: ${action.difficulty} &bull; Ask AI &nearr;
+        </div>
+      </button>`
+    ).join('');
   }
 
   /**
-   * Trigger AI planner for a preset action card.
-   * @param {number} index - index into CONFIG.ACTIONS
+   * Pre-fills the AI planner input with a preset action query and triggers it.
+   * Called by clicking one of the action cards.
+   *
+   * @param {number} index - Index into CONFIG.ACTIONS array
+   * @returns {void}
    */
   function triggerAction(index) {
     const action = CONFIG.ACTIONS[index];
     if (!action) return;
-    document.getElementById('action-query').value = action.query;
+
+    const input = document.getElementById('action-query');
+    if (input) input.value = action.query;
+
     askAI();
   }
 
-  /** Ask the AI planner with the current query input */
+  /**
+   * Sends the current AI planner query to the backend and displays the response.
+   * Reads the query from the #action-query input element.
+   * Debounced by the _isThinking flag to prevent concurrent requests.
+   *
+   * @async
+   * @returns {Promise<void>}
+   */
   async function askAI() {
     if (_isThinking) return;
 
-    const query = document.getElementById('action-query').value.trim();
+    const input = document.getElementById('action-query');
+    const query = input ? input.value.trim() : '';
+
     if (!query) {
-      document.getElementById('action-query').focus();
+      if (input) input.focus();
       return;
     }
 
     _isThinking = true;
 
-    const answerEl = document.getElementById('ai-action-answer');
-    const labelEl  = document.getElementById('ai-actions-label');
-
     const providerKey  = document.getElementById('model-select')?.value || 'claude';
     const providerName = CONFIG.AI_PROVIDERS[providerKey]?.name || 'AI';
 
-    answerEl.className = 'ai-insight-text';
-    answerEl.innerHTML = `<span class="ai-thinking">Thinking <span class="dot-pulse"><span></span><span></span><span></span></span></span>`;
-    labelEl.textContent = `AI planner (${providerName})`;
+    const labelEl = document.getElementById('ai-actions-label');
+    if (labelEl) labelEl.textContent = `AI Planner (${providerName})`;
 
-    const system = AI.buildPlannerSystem();
-    const totals = Store.getTotals();
-    const contextNote = `User context: net carbon balance is ${totals.net.toFixed(1)} kg CO2. `;
+    _setPlannerState('thinking', `
+      <span class="ai-thinking">
+        Thinking
+        <span class="dot-pulse" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </span>
+      </span>`);
+
+    const system      = AI.buildPlannerSystem();
+    const totals      = Store.getTotals();
+    const contextNote = `User context: current net carbon balance is ${totals.net.toFixed(1)} kg CO2. `;
 
     try {
       const text = await AI.ask(system, contextNote + query);
-      answerEl.className = 'ai-insight-text';
-      answerEl.textContent = text;
+      _setPlannerState('done', '');
+      const box = document.getElementById('ai-action-answer');
+      if (box) { box.className = 'insight-text'; box.textContent = text; }
     } catch (err) {
-      answerEl.className = 'ai-insight-text ai-insight-text--placeholder';
-      answerEl.textContent = err.message || 'AI unavailable. Check your API key in Settings.';
+      _setPlannerState('error', '');
+      const box = document.getElementById('ai-action-answer');
+      if (box) {
+        box.className   = 'insight-text insight-text--placeholder';
+        box.textContent = err.message || 'AI unavailable. Please check your backend connection.';
+      }
+    } finally {
+      _isThinking = false;
     }
-
-    _isThinking = false;
   }
 
-  return { init, triggerAction, askAI };
+  /** @public */
+  return Object.freeze({ init, triggerAction, askAI });
 })();

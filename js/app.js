@@ -1,58 +1,99 @@
 /**
- * app.js
- * Bootstrap. Set CARBON_LEDGER_BACKEND_URL before anything else loads.
+ * @fileoverview Application entry point for Carbon Ledger.
+ * Bootstraps all modules in dependency order, sets the backend URL,
+ * and attaches global event listeners. This script is loaded last.
+ *
+ * Module load order (defined in index.html):
+ *   config.js → store.js → ai.js → journal.js → analysis.js →
+ *   actions.js → settings.js → ui.js → app.js
+ *
+ * @module app
+ * @version 1.0.0
  */
 
-// Set your Render backend URL here after deploying.
-window.CARBON_LEDGER_BACKEND_URL = "https://carbon-ledger-4i6w.onrender.com";
+'use strict';
 
+/**
+ * Backend proxy URL. Must be set before AI module makes any requests.
+ * Points to the Render deployment; falls back handled inside ai.js.
+ * @type {string}
+ */
+window.CARBON_LEDGER_BACKEND_URL = 'https://carbon-ledger-4i6w.onrender.com';
+
+/**
+ * Bootstraps the Carbon Ledger application.
+ * Wrapped in an IIFE to avoid polluting the global scope.
+ *
+ * @returns {void}
+ */
 (function bootstrap() {
+  'use strict';
+
+  // 1. Load persisted data from localStorage
   Store.load();
+
+  // 2. Initialise UI to reflect loaded data
   UI.updateTotals();
+
+  // 3. Initialise feature modules
   Journal.init();
   Actions.init();
   Settings.init();
 
-  const modelSelect = document.getElementById("model-select");
-  if (modelSelect) modelSelect.addEventListener("change", UI.onModelChange);
+  // 4. Attach model switcher change listener
+  const modelSelect = document.getElementById('model-select');
+  if (modelSelect) {
+    modelSelect.addEventListener('change', UI.onModelChange);
+  }
 
-  const monthEl = document.getElementById("current-month");
-  if (monthEl)
-    monthEl.textContent = new Date().toLocaleString("default", {
-      month: "long",
-      year: "numeric",
+  // 5. Set the current month label in the header
+  const monthEl = document.getElementById('current-month');
+  if (monthEl) {
+    monthEl.textContent = new Date().toLocaleString('default', {
+      month: 'long',
+      year:  'numeric',
     });
+  }
 
+  // 6. Pre-render analysis components (populates monthly grid on first load)
   Analysis.render();
-  _checkBackendStatus();
 
-  console.info("Carbon Ledger initialised.");
+  // 7. Restore saved theme preference
+  _restoreTheme();
+
 })();
 
-async function _checkBackendStatus() {
-  const dot = document.getElementById("status-dot");
-  const text = document.getElementById("status-text");
-  if (!dot || !text) return;
+/**
+ * Restores the user's saved dark/light theme preference from localStorage.
+ * Applies the data-theme attribute and updates the toggle button icon.
+ *
+ * @private
+ * @returns {void}
+ */
+function _restoreTheme() {
+  const saved    = localStorage.getItem('cl-theme');
+  const iconEl   = document.getElementById('theme-icon');
+  if (!saved) return;
 
-  try {
-    const res = await fetch(`${window.CARBON_LEDGER_BACKEND_URL}/health`);
-    const data = await res.json();
+  document.documentElement.setAttribute('data-theme', saved);
+  if (iconEl) iconEl.textContent = saved === 'dark' ? '\u2600' : '\u263D';
+}
 
-    if (data.status === "ok") {
-      dot.className = "status-dot status-dot--green";
-      const keys = [
-        data.providers.claude ? "Claude" : null,
-        data.providers.grok ? "Grok" : null,
-      ]
-        .filter(Boolean)
-        .join(" + ");
-      text.textContent = `Backend connected. ${keys || "No AI keys set"}.`;
-    } else {
-      throw new Error("bad status");
-    }
-  } catch {
-    dot.className = "status-dot status-dot--red";
-    text.textContent =
-      "Backend not reachable. AI insights will be unavailable.";
-  }
+/**
+ * Toggles between dark and light themes and persists the preference.
+ * Called by the theme toggle button in the header (onclick attribute).
+ *
+ * @returns {void}
+ */
+function toggleTheme() {
+  const html   = document.documentElement;
+  const isDark = html.getAttribute('data-theme') === 'dark';
+  const next   = isDark ? 'light' : 'dark';
+
+  html.setAttribute('data-theme', next);
+
+  const iconEl = document.getElementById('theme-icon');
+  if (iconEl) iconEl.textContent = isDark ? '\u263D' : '\u2600';
+
+  localStorage.setItem('cl-theme', next);
 }
