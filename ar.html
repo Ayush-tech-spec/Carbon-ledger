@@ -3,754 +3,925 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Carbon Ledger AR | See Your Footprint</title>
-  <meta name="description" content="See your carbon footprint in augmented reality. Point your camera at a surface to visualise your emissions as 3D objects." />
-  <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+  <meta name="description" content="See your carbon footprint in augmented reality." />
 
-    body {
-      background: #000;
-      color: #fff;
-      font-family: 'Courier New', monospace;
-      overflow: hidden;
-      height: 100dvh;
+  <!--
+    Permissions-Policy: camera must be allowed for WebXR.
+    This meta equivalent is handled by the Netlify _headers file (see below),
+    but we also set it here for iframe contexts.
+  -->
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --olive:   #6b7a45;
+      --olive-d: #3d4829;
+      --green:   #4caf50;
+      --red:     #ef5350;
+      --bg:      #0d110a;
+      --surface: #141a10;
+      --border:  #2a3320;
+      --text:    #e0e4cc;
+      --muted:   #7a8060;
+      --mono:    'Courier New', monospace;
+      --sans:    system-ui, sans-serif;
     }
 
-    /* --- Splash / Intro --------------------------------------------------- */
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      overflow: hidden;
+    }
+
+    /* ── Splash ── */
     #splash {
-      position: fixed; inset: 0;
+      position: fixed; inset: 0; z-index: 200;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      gap: 1.5rem;
-      background: linear-gradient(160deg, #0a1a0f 0%, #000 100%);
-      z-index: 100;
-      padding: 2rem;
+      gap: 1.25rem;
+      background: linear-gradient(160deg, #0d1a0a 0%, var(--bg) 100%);
+      padding: 2rem 1.5rem;
       text-align: center;
+      overflow-y: auto;
     }
 
-    .splash-logo {
-      font-size: 11px; letter-spacing: 0.3em;
-      text-transform: uppercase; color: #4caf50; margin-bottom: 0.5rem;
+    .logo-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 11px; letter-spacing: 0.25em; text-transform: uppercase;
+      color: var(--olive);
     }
+
+    .logo-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--green); animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
 
     .splash-title {
-      font-size: clamp(1.4rem, 5vw, 2rem);
-      font-weight: 700; line-height: 1.2;
-      color: #fff;
+      font-size: clamp(1.5rem, 6vw, 2.2rem);
+      font-weight: 700; line-height: 1.15; color: #fff;
+      max-width: 340px;
     }
 
     .splash-sub {
-      font-size: 13px; color: #888; line-height: 1.6; max-width: 320px;
+      font-size: 13px; color: var(--muted);
+      line-height: 1.65; max-width: 300px;
     }
 
-    .splash-stat {
-      background: #111;
-      border: 1px solid #1a5c35;
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
       padding: 1rem 1.5rem;
-      text-align: center; width: 100%; max-width: 320px;
+      width: 100%; max-width: 300px;
     }
 
-    .splash-stat-val {
-      font-size: 2.5rem; font-weight: 700;
-      color: #f44336; line-height: 1;
+    .stat-val {
+      font-family: var(--mono);
+      font-size: 2.4rem; font-weight: 700;
+      color: var(--red); line-height: 1;
     }
 
-    .splash-stat-label { font-size: 11px; color: #888; margin-top: 4px; letter-spacing: 0.1em; text-transform: uppercase; }
-
-    .btn-ar {
-      background: #1a5c35; color: #fff;
-      border: none; padding: 14px 32px;
-      font-family: inherit; font-size: 13px;
-      letter-spacing: 0.15em; text-transform: uppercase;
-      cursor: pointer; width: 100%; max-width: 320px;
-      transition: background 0.2s;
-    }
-    .btn-ar:hover   { background: #2a7c45; }
-    .btn-ar:active  { background: #145c2a; }
-    .btn-ar:disabled{ background: #333; color: #666; cursor: not-allowed; }
-
-    .btn-fallback {
-      background: transparent; color: #4caf50;
-      border: 1px solid #4caf50; padding: 10px 24px;
-      font-family: inherit; font-size: 11px;
-      letter-spacing: 0.12em; text-transform: uppercase;
-      cursor: pointer; width: 100%; max-width: 320px;
+    .stat-label {
+      font-size: 10px; letter-spacing: 0.12em;
+      text-transform: uppercase; color: var(--muted); margin-top: 5px;
     }
 
-    .ar-support-note {
-      font-size: 11px; color: #555; max-width: 300px; line-height: 1.5;
+    .device-pills {
+      display: flex; gap: 8px; flex-wrap: wrap; justify-content: center;
     }
 
-    /* --- AR Overlay UI ---------------------------------------------------- */
-    #ar-ui {
-      position: fixed; inset: 0;
-      pointer-events: none;
-      display: none; /* shown when AR starts */
-      z-index: 50;
+    .pill {
+      font-size: 11px; font-weight: 600;
+      padding: 4px 12px; border-radius: 999px;
+      border: 1px solid var(--border); color: var(--muted);
     }
 
-    #ar-ui.active { display: block; }
+    .pill--active { border-color: var(--green); color: var(--green); }
+    .pill--warn   { border-color: #f57c00; color: #f57c00; }
 
-    .ar-header {
+    .btn-group { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; }
+
+    .btn {
+      font-family: var(--sans); font-size: 13px; font-weight: 600;
+      letter-spacing: 0.04em; padding: 13px 20px;
+      border-radius: 8px; cursor: pointer;
+      width: 100%; transition: opacity 0.2s, transform 0.1s;
+      border: none;
+    }
+
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    .btn--primary { background: var(--olive); color: #fff; }
+    .btn--primary:hover:not(:disabled) { background: var(--olive-d); }
+
+    .btn--outline {
+      background: transparent; color: var(--green);
+      border: 1.5px solid var(--green);
+    }
+    .btn--outline:hover { background: rgba(76,175,80,0.08); }
+
+    .btn--ghost {
+      background: transparent; color: var(--muted);
+      border: 1px solid var(--border); font-size: 12px;
+    }
+
+    .support-note {
+      font-size: 11px; color: var(--muted);
+      line-height: 1.6; max-width: 280px;
+    }
+
+    .support-note a { color: var(--olive); }
+
+    /* ── AR overlay ── */
+    #ar-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      display: none; pointer-events: none;
+    }
+
+    #ar-overlay.active { display: block; }
+
+    .ar-top {
       position: absolute; top: 0; left: 0; right: 0;
       padding: 1rem 1.25rem;
-      background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);
-      display: flex; justify-content: space-between; align-items: flex-start;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.75), transparent);
       pointer-events: auto;
     }
 
-    .ar-wordmark  { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: #4caf50; }
-    .ar-net-label { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: #888; }
-    .ar-net-val   { font-size: 1.5rem; font-weight: 700; color: #f44336; line-height: 1; margin-top: 2px; }
+    .ar-brand { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--green); }
+    .ar-net   { font-family: var(--mono); font-size: 1.4rem; font-weight: 700; color: var(--red); margin-top: 2px; }
 
     .ar-crosshair {
-      position: absolute;
-      top: 50%; left: 50%;
-      transform: translate(-50%, -50%);
-      width: 44px; height: 44px;
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      width: 50px; height: 50px; pointer-events: none;
     }
 
     .ar-crosshair::before, .ar-crosshair::after {
-      content: '';
-      position: absolute;
-      background: rgba(255,255,255,0.6);
+      content: ''; position: absolute; background: rgba(255,255,255,0.5);
     }
-    .ar-crosshair::before { width: 1px; height: 100%; left: 50%; top: 0; }
-    .ar-crosshair::after  { width: 100%; height: 1px; top: 50%; left: 0; }
+    .ar-crosshair::before { width: 1px; height: 100%; left: 50%; }
+    .ar-crosshair::after  { height: 1px; width: 100%; top: 50%; }
 
     .ar-hint {
-      position: absolute;
-      bottom: 120px; left: 50%;
+      position: absolute; bottom: 140px; left: 50%;
       transform: translateX(-50%);
-      background: rgba(0,0,0,0.7);
-      padding: 8px 16px;
-      font-size: 12px; color: #ccc;
-      letter-spacing: 0.05em;
-      white-space: nowrap;
+      background: rgba(0,0,0,0.65);
+      padding: 8px 18px; border-radius: 999px;
+      font-size: 12px; color: #ccc; white-space: nowrap;
     }
 
-    .ar-controls {
+    .ar-bottom {
       position: absolute; bottom: 0; left: 0; right: 0;
-      padding: 1.5rem 1.25rem;
-      background: linear-gradient(to top, rgba(0,0,0,0.8) 0%, transparent 100%);
+      padding: 1.25rem;
+      background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
       pointer-events: auto;
     }
 
     .ar-legend {
-      display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap;
+      display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 1rem;
     }
 
     .legend-item {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: #aaa;
+      display: flex; align-items: center; gap: 5px;
+      font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: #aaa;
     }
 
-    .legend-dot {
-      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
-    }
+    .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 
-    .ar-btn-row {
-      display: flex; gap: 10px;
-    }
+    .ar-btn-row { display: flex; gap: 10px; }
 
     .btn-place {
-      flex: 1; background: #1a5c35; color: #fff;
-      border: none; padding: 12px;
-      font-family: inherit; font-size: 12px;
-      letter-spacing: 0.12em; text-transform: uppercase;
-      cursor: pointer;
+      flex: 1; background: var(--olive); color: #fff;
+      border: none; padding: 12px; border-radius: 8px;
+      font-family: var(--sans); font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: opacity 0.2s;
     }
+    .btn-place:disabled { opacity: 0.4; }
 
     .btn-exit {
       background: transparent; color: #888;
-      border: 1px solid #333; padding: 12px 20px;
-      font-family: inherit; font-size: 12px;
-      letter-spacing: 0.12em; text-transform: uppercase;
+      border: 1px solid #333; padding: 12px 18px; border-radius: 8px;
+      font-family: var(--sans); font-size: 12px;
       cursor: pointer;
     }
 
-    /* --- Fallback 3D canvas (non-AR) --------------------------------------- */
-    #fallback-canvas {
-      position: fixed; inset: 0;
-      display: none;
-      z-index: 40;
+    /* ── Fallback 3D ── */
+    #fallback-wrap {
+      position: fixed; inset: 0; z-index: 150; display: none;
     }
 
-    #fallback-canvas.active { display: block; }
+    #fallback-wrap.active { display: block; }
 
-    #three-canvas {
-      width: 100% !important;
-      height: 100% !important;
-    }
+    #three-canvas { width: 100%; height: 100%; display: block; }
 
-    .fallback-header {
+    .fallback-ui {
       position: absolute; top: 0; left: 0; right: 0;
+      display: flex; justify-content: space-between; align-items: center;
       padding: 1rem 1.25rem;
       background: rgba(0,0,0,0.5);
-      display: flex; justify-content: space-between; align-items: center;
-      z-index: 10;
     }
 
-    .fallback-title { font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; color: #4caf50; }
+    .fallback-title {
+      font-size: 11px; letter-spacing: 0.15em;
+      text-transform: uppercase; color: var(--green);
+    }
+
     .fallback-close {
       background: transparent; border: 1px solid #333;
-      color: #888; padding: 6px 14px;
-      font-family: inherit; font-size: 11px;
-      cursor: pointer; letter-spacing: 0.1em; text-transform: uppercase;
+      color: #888; padding: 6px 14px; border-radius: 6px;
+      font-family: var(--sans); font-size: 11px; cursor: pointer;
     }
 
-    .fallback-controls {
+    .fallback-hint {
       position: absolute; bottom: 1.5rem; left: 50%;
       transform: translateX(-50%);
-      background: rgba(0,0,0,0.7);
-      padding: 10px 20px;
-      font-size: 11px; color: #666;
-      letter-spacing: 0.05em;
-      white-space: nowrap;
-      z-index: 10;
+      background: rgba(0,0,0,0.65);
+      padding: 8px 18px; border-radius: 999px;
+      font-size: 11px; color: #666; white-space: nowrap;
     }
 
-    /* back link */
-    .back-link {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
-      color: #555; text-decoration: none;
+    /* ── Camera stream (behind Three.js for non-WebXR AR) ── */
+    #camera-video {
+      position: fixed; inset: 0; z-index: -1;
+      width: 100%; height: 100%;
+      object-fit: cover; display: none;
     }
-    .back-link:hover { color: #4caf50; }
+
+    #camera-video.active { display: block; }
+
+    .back-link {
+      font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--muted); text-decoration: none;
+    }
+    .back-link:hover { color: var(--green); }
   </style>
 </head>
 <body>
 
-  <!-- Splash Screen -->
-  <div id="splash">
-    <div>
-      <div class="splash-logo">Carbon Ledger</div>
-      <h1 class="splash-title">See your footprint<br />in the real world</h1>
-    </div>
+<!-- Camera video for non-WebXR camera overlay -->
+<video id="camera-video" autoplay playsinline muted aria-hidden="true"></video>
 
-    <p class="splash-sub">
-      Point your camera at a flat surface. Your carbon emissions appear as 3D objects you can walk around.
-    </p>
+<!-- Splash -->
+<div id="splash" role="main">
+  <div class="logo-badge">
+    <div class="logo-dot" aria-hidden="true"></div>
+    Carbon Ledger
+  </div>
 
-    <div class="splash-stat">
-      <div class="splash-stat-val" id="splash-net">0.0</div>
-      <div class="splash-stat-label">kg CO<sub>2</sub> outstanding this month</div>
-    </div>
+  <h1 class="splash-title">See your footprint<br/>in the real world</h1>
 
-    <button class="btn-ar" id="btn-start-ar" onclick="ARApp.startAR()">
-      Start AR Experience
+  <p class="splash-sub">
+    Your carbon emissions visualised as 3D objects.
+    Point your camera at any flat surface to place them.
+  </p>
+
+  <div class="stat-card" aria-label="Current carbon balance">
+    <div class="stat-val" id="splash-net">0.0</div>
+    <div class="stat-label">kg CO₂ outstanding</div>
+  </div>
+
+  <div class="device-pills">
+    <div class="pill" id="pill-webxr">WebXR: checking…</div>
+    <div class="pill" id="pill-camera">Camera: checking…</div>
+    <div class="pill" id="pill-ios">iOS: not detected</div>
+  </div>
+
+  <div class="btn-group">
+    <button class="btn btn--primary" id="btn-webxr" onclick="ARApp.startWebXR()" disabled>
+      Start AR (Camera + 3D)
     </button>
-
-    <button class="btn-fallback" onclick="ARApp.startFallback()">
-      View in 3D without camera
+    <button class="btn btn--outline" id="btn-camera3d" onclick="ARApp.startCamera3D()" disabled>
+      3D overlay on camera
     </button>
-
-    <p class="ar-support-note" id="ar-support-note">
-      Checking WebXR support...
-    </p>
-
-    <a href="index.html" class="back-link">&larr; Back to ledger</a>
+    <button class="btn btn--ghost" onclick="ARApp.startFallback()">
+      View in 3D (no camera)
+    </button>
   </div>
 
-  <!-- AR overlay UI (shown during WebXR session) -->
-  <div id="ar-ui">
-    <div class="ar-header">
-      <div>
-        <div class="ar-wordmark">Carbon Ledger AR</div>
-        <div class="ar-net-label">Net outstanding</div>
-        <div class="ar-net-val" id="ar-net-val">0.0 kg</div>
-      </div>
+  <p class="support-note" id="support-note">
+    Checking your device capabilities…
+  </p>
+
+  <a href="index.html" class="back-link" aria-label="Back to Carbon Ledger">&larr; Back to Ledger</a>
+</div>
+
+<!-- AR overlay UI (WebXR mode) -->
+<div id="ar-overlay" role="region" aria-label="AR controls" aria-live="polite">
+  <div class="ar-top">
+    <div class="ar-brand">Carbon Ledger AR</div>
+    <div class="ar-net" id="ar-net-val">0.0 kg</div>
+  </div>
+  <div class="ar-crosshair" aria-hidden="true"></div>
+  <div class="ar-hint" id="ar-hint">Move phone slowly to detect a surface</div>
+  <div class="ar-bottom">
+    <div class="ar-legend" aria-label="Category legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#e53935"></div>Transport</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#fb8c00"></div>Food</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#fdd835"></div>Energy</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#8e24aa"></div>Shopping</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4caf50"></div>Offset</div>
     </div>
-
-    <div class="ar-crosshair" aria-hidden="true"></div>
-    <div class="ar-hint" id="ar-hint">Move phone slowly to detect a surface</div>
-
-    <div class="ar-controls">
-      <div class="ar-legend">
-        <div class="legend-item"><div class="legend-dot" style="background:#e53935"></div>Transport</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#fb8c00"></div>Food</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#fdd835"></div>Energy</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#8e24aa"></div>Shopping</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#43a047"></div>Offset</div>
-      </div>
-      <div class="ar-btn-row">
-        <button class="btn-place" id="btn-place" onclick="ARApp.placeScene()" disabled>Place here</button>
-        <button class="btn-exit"  onclick="ARApp.exitAR()">Exit</button>
-      </div>
+    <div class="ar-btn-row">
+      <button class="btn-place" id="btn-place" onclick="ARApp.placeScene()" disabled>Place here</button>
+      <button class="btn-exit"  onclick="ARApp.exitAR()">Exit</button>
     </div>
   </div>
+</div>
 
-  <!-- Fallback 3D canvas -->
-  <div id="fallback-canvas">
-    <div class="fallback-header">
-      <span class="fallback-title">Carbon footprint - 3D view</span>
-      <button class="fallback-close" onclick="ARApp.exitFallback()">Close</button>
-    </div>
-    <canvas id="three-canvas"></canvas>
-    <div class="fallback-controls">Drag to rotate &bull; Scroll to zoom</div>
+<!-- Fallback 3D canvas -->
+<div id="fallback-wrap">
+  <canvas id="three-canvas" aria-label="3D carbon footprint visualization"></canvas>
+  <div class="fallback-ui">
+    <span class="fallback-title">Carbon Footprint — 3D View</span>
+    <button class="fallback-close" onclick="ARApp.exitFallback()">Close</button>
   </div>
+  <div class="fallback-hint">Drag to rotate &bull; Scroll / pinch to zoom</div>
+</div>
 
-  <!-- Three.js from CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- Three.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="js/config.js"></script>
+<script src="js/store.js"></script>
 
-  <!-- Config and Store (for reading entries) -->
-  <script src="js/config.js"></script>
-  <script src="js/store.js"></script>
+<script>
+'use strict';
 
-  <script>
+/* ============================================================
+   ARApp — augmented reality / 3D visualiser controller
+   Supports three modes:
+   1. WebXR immersive-ar   — Android Chrome + ARCore (true AR)
+   2. Camera3D             — getUserMedia + Three.js overlay (iOS / desktop Chrome)
+   3. Fallback3D           — Three.js only, no camera (all devices)
+   ============================================================ */
+const ARApp = (() => {
   'use strict';
 
-  // =========================================================================
-  // ARApp: main controller
-  // =========================================================================
-  const ARApp = (() => {
+  // ── State ──────────────────────────────────────────────────
+  let _renderer   = null;
+  let _scene      = null;
+  let _camera     = null;
+  let _reticle    = null;
+  let _xrSession  = null;
+  let _hitTestSrc = null;
+  let _xrRefSpace = null;
+  let _placed     = false;
+  let _carbonData = null;
+  let _animFrames = [];   // track all animation frame IDs for cleanup
+  let _stream     = null; // MediaStream for camera3D mode
 
-    let _xrSession    = null;
-    let _xrRefSpace   = null;
-    let _hitTestSrc   = null;
-    let _renderer     = null;
-    let _scene        = null;
-    let _camera       = null;
-    let _reticle      = null;
-    let _placed       = false;
-    let _carbonData   = null;
+  // ── Colours per category ───────────────────────────────────
+  const COLORS = {
+    transport: 0xe53935,
+    food:      0xfb8c00,
+    energy:    0xfdd835,
+    shopping:  0x8e24aa,
+    offset:    0x4caf50,
+  };
 
-    // Category colors
-    const COLORS = {
-      transport: 0xe53935,
-      food:      0xfb8c00,
-      energy:    0xfdd835,
-      shopping:  0x8e24aa,
-      offset:    0x43a047,
-    };
+  // ── Init ───────────────────────────────────────────────────
 
-    // -------------------------------------------------------------------------
-    // Init
-    // -------------------------------------------------------------------------
-    function init() {
-      Store.load();
-      _carbonData = _buildCarbonData();
-      _updateSplash();
-      _checkARSupport();
+  /**
+   * Initialise: load stored data, update splash stat, run capability checks.
+   */
+  function init() {
+    Store.load();
+    _carbonData = { totals: Store.getTotals(), cats: Store.getCategoryTotals() };
+
+    const net = _carbonData.totals.net;
+    const netEl = document.getElementById('splash-net');
+    if (netEl) netEl.textContent = net.toFixed(1);
+
+    const arNetEl = document.getElementById('ar-net-val');
+    if (arNetEl) arNetEl.textContent = `${net.toFixed(1)} kg`;
+
+    _checkCapabilities();
+  }
+
+  /**
+   * Detects WebXR, getUserMedia, and iOS support then updates UI pills.
+   * @private
+   */
+  async function _checkCapabilities() {
+    const noteEl    = document.getElementById('support-note');
+    const pillWebXR = document.getElementById('pill-webxr');
+    const pillCam   = document.getElementById('pill-camera');
+    const pillIOS   = document.getElementById('pill-ios');
+    const btnWebXR  = document.getElementById('btn-webxr');
+    const btnCam3D  = document.getElementById('btn-camera3d');
+
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+    if (isIOS) {
+      pillIOS.textContent = 'iOS: detected';
+      pillIOS.className   = 'pill pill--warn';
     }
 
-    function _buildCarbonData() {
-      const totals = Store.getTotals();
-      const cats   = Store.getCategoryTotals();
-      return { totals, cats };
+    // Check getUserMedia (camera access)
+    const hasCamera = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+    if (hasCamera) {
+      pillCam.textContent = 'Camera: available';
+      pillCam.className   = 'pill pill--active';
+      btnCam3D.disabled   = false;
+    } else {
+      pillCam.textContent = 'Camera: unavailable';
     }
 
-    function _updateSplash() {
-      const net = _carbonData.totals.net;
-      const el  = document.getElementById('splash-net');
-      if (el) el.textContent = net.toFixed(1);
-
-      const arNetEl = document.getElementById('ar-net-val');
-      if (arNetEl) arNetEl.textContent = net.toFixed(1) + ' kg';
-    }
-
-    async function _checkARSupport() {
-      const note = document.getElementById('ar-support-note');
-      const btn  = document.getElementById('btn-start-ar');
-
-      if (!navigator.xr) {
-        note.textContent = 'WebXR not available in this browser. Use the 3D view below.';
-        btn.disabled = true;
-        return;
-      }
-
+    // Check WebXR immersive-ar
+    if (navigator.xr) {
       try {
         const supported = await navigator.xr.isSessionSupported('immersive-ar');
         if (supported) {
-          note.textContent = 'WebXR AR ready! Tap "Start AR Experience" to begin.';
-          btn.disabled = false;
+          pillWebXR.textContent = 'WebXR AR: ready';
+          pillWebXR.className   = 'pill pill--active';
+          btnWebXR.disabled     = false;
+
+          if (noteEl) noteEl.textContent =
+            'Full AR available! Tap "Start AR" to place your footprint on a real surface.';
         } else {
-          note.textContent = 'AR not supported on this device. Use the 3D view.';
-          btn.disabled = true;
-        }
-      } catch (e) {
-        note.textContent = 'Could not check AR support. Try the 3D view.';
-        btn.disabled = true;
-      }
-    }
-
-    // -------------------------------------------------------------------------
-    // WebXR AR Session
-    // -------------------------------------------------------------------------
-    async function startAR() {
-      try {
-        _xrSession = await navigator.xr.requestSession('immersive-ar', {
-          requiredFeatures: ['hit-test'],
-          optionalFeatures: ['dom-overlay'],
-          domOverlay:       { root: document.getElementById('ar-ui') },
-        });
-
-        _setupThreeJS(true);
-        _xrSession.addEventListener('end', _onAREnd);
-
-        const gl = _renderer.getContext();
-        await gl.makeXRCompatible();
-        _renderer.xr.setReferenceSpaceType('local');
-        await _renderer.xr.setSession(_xrSession);
-
-        _xrRefSpace = await _xrSession.requestReferenceSpace('local');
-        const viewerSpace = await _xrSession.requestReferenceSpace('viewer');
-        _hitTestSrc = await _xrSession.requestHitTestSource({ space: viewerSpace });
-
-        document.getElementById('splash').style.display = 'none';
-        document.getElementById('ar-ui').classList.add('active');
-
-        _renderer.setAnimationLoop(_arRenderLoop);
-
-      } catch (err) {
-        console.error('AR session failed:', err);
-        alert('Could not start AR: ' + err.message + '. Try the 3D view.');
-      }
-    }
-
-    function _arRenderLoop(timestamp, frame) {
-      if (!frame) return;
-
-      const session = _renderer.xr.getSession();
-      const pose    = frame.getViewerPose(_xrRefSpace);
-
-      if (!_placed && _hitTestSrc) {
-        const hits = frame.getHitTestResults(_hitTestSrc);
-        if (hits.length > 0) {
-          const hit  = hits[0];
-          const pose2 = hit.getPose(_xrRefSpace);
-          if (pose2) {
-            _reticle.visible = true;
-            _reticle.matrix.fromArray(pose2.transform.matrix);
-            document.getElementById('btn-place').disabled = false;
-            document.getElementById('ar-hint').textContent = 'Surface detected! Tap "Place here"';
+          pillWebXR.textContent = 'WebXR AR: unsupported';
+          if (noteEl) {
+            noteEl.innerHTML = isIOS
+              ? 'Safari on iOS 17+ supports WebXR. Try <strong>Start AR</strong> in Safari, ' +
+                'or use the 3D overlay below.'
+              : 'WebXR AR not available on this browser. Use "3D overlay on camera" for a similar experience.';
           }
-        } else {
-          _reticle.visible = false;
-          document.getElementById('btn-place').disabled = true;
-          document.getElementById('ar-hint').textContent = 'Move phone slowly to detect a surface';
         }
+      } catch (_e) {
+        pillWebXR.textContent = 'WebXR AR: error';
+        if (noteEl) noteEl.textContent = 'Could not check WebXR. Try the 3D camera overlay or 3D view.';
       }
-
-      _renderer.render(_scene, _camera);
-    }
-
-    function placeScene() {
-      if (!_reticle.visible) return;
-
-      const pos = new THREE.Vector3();
-      const quat = new THREE.Quaternion();
-      const scale = new THREE.Vector3();
-      _reticle.matrix.decompose(pos, quat, scale);
-
-      _buildCarbonScene(pos);
-      _placed = true;
-      _reticle.visible = false;
-
-      document.getElementById('btn-place').disabled = true;
-      document.getElementById('ar-hint').textContent = 'Your carbon footprint is placed. Walk around it!';
-    }
-
-    function exitAR() {
-      if (_xrSession) _xrSession.end();
-    }
-
-    function _onAREnd() {
-      _xrSession  = null;
-      _hitTestSrc = null;
-      _placed     = false;
-      document.getElementById('ar-ui').classList.remove('active');
-      document.getElementById('splash').style.display = 'flex';
-      if (_renderer) {
-        _renderer.setAnimationLoop(null);
-        _renderer.dispose();
-        _renderer = null;
+    } else {
+      pillWebXR.textContent = 'WebXR: not supported';
+      if (noteEl) {
+        noteEl.innerHTML = isIOS
+          ? 'On iPhone: open this page in <strong>Safari</strong> (not Chrome) for AR support.'
+          : 'Use Chrome on Android for full AR, or try the 3D camera overlay below.';
       }
     }
+  }
 
-    // -------------------------------------------------------------------------
-    // Fallback 3D (no camera, just orbit controls)
-    // -------------------------------------------------------------------------
-    function startFallback() {
-      document.getElementById('splash').style.display = 'none';
-      document.getElementById('fallback-canvas').classList.add('active');
+  // ── Mode 1: WebXR (Android Chrome + ARCore) ────────────────
 
-      _setupThreeJS(false);
-      _buildCarbonScene(new THREE.Vector3(0, 0, -2));
-
-      // Orbit controls (manual since OrbitControls not in r128 CDN)
-      _setupOrbitControls();
-
-      _renderer.setAnimationLoop(() => {
-        _renderer.render(_scene, _camera);
+  /**
+   * Starts a WebXR immersive-ar session with hit-test.
+   * Requires Android Chrome with ARCore installed.
+   */
+  async function startWebXR() {
+    try {
+      _xrSession = await navigator.xr.requestSession('immersive-ar', {
+        requiredFeatures: ['hit-test'],
+        optionalFeatures: ['dom-overlay', 'light-estimation'],
+        domOverlay:       { root: document.getElementById('ar-overlay') },
       });
+    } catch (err) {
+      alert(`Could not start AR: ${err.message}\n\nTry "3D overlay on camera" instead.`);
+      return;
     }
 
-    function exitFallback() {
-      document.getElementById('fallback-canvas').classList.remove('active');
-      document.getElementById('splash').style.display = 'flex';
-      if (_renderer) {
-        _renderer.setAnimationLoop(null);
-        _renderer.dispose();
-        _renderer = null;
-      }
-      _placed = false;
-    }
+    _setupThreeJS(true);
 
-    // -------------------------------------------------------------------------
-    // Three.js setup
-    // -------------------------------------------------------------------------
-    function _setupThreeJS(isAR) {
-      _scene  = new THREE.Scene();
-      _camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);
-      _camera.position.set(0, 1.5, 2);
+    const gl = _renderer.getContext();
+    await gl.makeXRCompatible();
+    _renderer.xr.setReferenceSpaceType('local');
+    await _renderer.xr.setSession(_xrSession);
 
-      // Lighting
-      const ambient = new THREE.AmbientLight(0xffffff, 0.6);
-      const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
-      dirLight.position.set(2, 4, 3);
-      _scene.add(ambient, dirLight);
+    _xrRefSpace = await _xrSession.requestReferenceSpace('local');
+    const viewer = await _xrSession.requestReferenceSpace('viewer');
+    _hitTestSrc  = await _xrSession.requestHitTestSource({ space: viewer });
 
-      // Renderer
-      const canvas = isAR ? undefined : document.getElementById('three-canvas');
-      _renderer = new THREE.WebGLRenderer({
-        canvas,
-        alpha: true,
-        antialias: true,
-      });
-      _renderer.setPixelRatio(window.devicePixelRatio);
-      _renderer.setSize(window.innerWidth, window.innerHeight);
-      _renderer.xr.enabled = isAR;
+    _xrSession.addEventListener('end', _onXREnd);
 
-      if (!isAR) {
-        // Append canvas to body (it's already in the DOM via #three-canvas)
-      }
+    document.getElementById('splash').style.display   = 'none';
+    document.getElementById('ar-overlay').classList.add('active');
 
-      // Reticle (AR only)
-      if (isAR) {
-        const ringGeo  = new THREE.RingGeometry(0.08, 0.12, 32);
-        const ringMat  = new THREE.MeshBasicMaterial({ color: 0x4caf50, side: THREE.DoubleSide });
-        _reticle = new THREE.Mesh(ringGeo, ringMat);
-        _reticle.matrixAutoUpdate = false;
+    _renderer.setAnimationLoop(_xrRenderLoop);
+  }
+
+  /** @private WebXR render loop */
+  function _xrRenderLoop(_t, frame) {
+    if (!frame) return;
+
+    if (!_placed && _hitTestSrc) {
+      const hits = frame.getHitTestResults(_hitTestSrc);
+      if (hits.length > 0) {
+        const pose = hits[0].getPose(_xrRefSpace);
+        if (pose) {
+          _reticle.visible = true;
+          _reticle.matrix.fromArray(pose.transform.matrix);
+          document.getElementById('btn-place').disabled = false;
+          document.getElementById('ar-hint').textContent = 'Surface found! Tap "Place here"';
+        }
+      } else {
         _reticle.visible = false;
-        _scene.add(_reticle);
+        document.getElementById('btn-place').disabled = true;
+        document.getElementById('ar-hint').textContent = 'Move phone slowly to detect a surface';
       }
-
-      window.addEventListener('resize', () => {
-        if (_camera && _renderer) {
-          _camera.aspect = window.innerWidth / window.innerHeight;
-          _camera.updateProjectionMatrix();
-          _renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-      });
     }
 
-    // -------------------------------------------------------------------------
-    // Build the actual carbon visualization
-    // -------------------------------------------------------------------------
-    function _buildCarbonScene(origin) {
-      const data   = _carbonData;
-      const cats   = data.cats;
-      const totals = data.totals;
+    _renderer.render(_scene, _camera);
+  }
 
-      // Scale: 1 unit height = 50 kg CO2
-      const SCALE = 0.004; // metres per kg
+  /** Place the carbon scene at the current reticle position */
+  function placeScene() {
+    if (!_reticle || !_reticle.visible) return;
+    const pos  = new THREE.Vector3();
+    const quat = new THREE.Quaternion();
+    const scl  = new THREE.Vector3();
+    _reticle.matrix.decompose(pos, quat, scl);
+    _buildCarbonScene(pos);
+    _placed = true;
+    _reticle.visible = false;
+    document.getElementById('btn-place').disabled = true;
+    document.getElementById('ar-hint').textContent = 'Walk around your carbon footprint!';
+  }
 
-      const catKeys    = ['transport', 'food', 'energy', 'shopping'];
-      const spacing    = 0.28;
-      const startX     = origin.x - (catKeys.length - 1) * spacing * 0.5;
+  function exitAR() {
+    if (_xrSession) _xrSession.end();
+  }
 
-      catKeys.forEach((cat, i) => {
-        const kg     = cats[cat] || 0;
-        if (kg <= 0) return;
+  function _onXREnd() {
+    _xrSession  = null;
+    _hitTestSrc = null;
+    _placed     = false;
+    document.getElementById('ar-overlay').classList.remove('active');
+    document.getElementById('splash').style.display = 'flex';
+    if (_renderer) { _renderer.setAnimationLoop(null); _renderer.dispose(); _renderer = null; }
+  }
 
-        const height = Math.max(kg * SCALE, 0.05);
-        const radius = 0.07 + Math.min(kg * SCALE * 0.2, 0.08);
+  // ── Mode 2: Camera + Three.js overlay (iPhone / desktop) ──
 
-        const geo = new THREE.CylinderGeometry(radius, radius * 1.2, height, 16);
-        const mat = new THREE.MeshPhongMaterial({
-          color:     COLORS[cat] || 0xcccccc,
-          shininess: 60,
+  /**
+   * Opens camera via getUserMedia, renders Three.js on top as a transparent overlay.
+   * Works on iPhone Safari (iOS 14.3+), desktop Chrome, Firefox.
+   * Provides a pseudo-AR experience without requiring WebXR.
+   */
+  async function startCamera3D() {
+    // Request camera
+    try {
+      _stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode:  { ideal: 'environment' }, // back camera preferred
+          width:       { ideal: 1280 },
+          height:      { ideal: 720 },
+        },
+        audio: false,
+      });
+    } catch (err) {
+      if (err.name === 'NotAllowedError') {
+        alert(
+          'Camera access was denied.\n\n' +
+          'To fix this:\n' +
+          '• iOS: Settings > Safari > Camera > Allow\n' +
+          '• Chrome: click the camera icon in the address bar and allow\n' +
+          '• Then refresh the page and try again.'
+        );
+      } else {
+        alert(`Camera error: ${err.message}\n\nUsing 3D view without camera.`);
+        startFallback();
+      }
+      return;
+    }
+
+    const video = document.getElementById('camera-video');
+    video.srcObject = _stream;
+    video.classList.add('active');
+    await video.play().catch(() => {});
+
+    document.getElementById('splash').style.display = 'none';
+    document.getElementById('fallback-wrap').classList.add('active');
+
+    _setupThreeJS(false, true); // transparent background
+    _buildCarbonScene(new THREE.Vector3(0, -0.5, -2));
+    _setupOrbitControls();
+
+    const loop = () => {
+      _renderer.render(_scene, _camera);
+      const id = requestAnimationFrame(loop);
+      _animFrames.push(id);
+    };
+    loop();
+  }
+
+  // ── Mode 3: Pure 3D fallback ───────────────────────────────
+
+  /** Opens Three.js 3D view with drag-to-rotate, no camera required. */
+  function startFallback() {
+    document.getElementById('splash').style.display = 'none';
+    document.getElementById('fallback-wrap').classList.add('active');
+
+    _setupThreeJS(false, false);
+    _buildCarbonScene(new THREE.Vector3(0, 0, -2));
+    _setupOrbitControls();
+
+    const loop = () => {
+      _renderer.render(_scene, _camera);
+      const id = requestAnimationFrame(loop);
+      _animFrames.push(id);
+    };
+    loop();
+  }
+
+  function exitFallback() {
+    // Stop animation
+    _animFrames.forEach(id => cancelAnimationFrame(id));
+    _animFrames = [];
+
+    // Stop camera stream
+    if (_stream) {
+      _stream.getTracks().forEach(t => t.stop());
+      _stream = null;
+    }
+
+    const video = document.getElementById('camera-video');
+    video.srcObject = null;
+    video.classList.remove('active');
+
+    document.getElementById('fallback-wrap').classList.remove('active');
+    document.getElementById('splash').style.display = 'flex';
+
+    if (_renderer) { _renderer.dispose(); _renderer = null; }
+    _placed = false;
+  }
+
+  // ── Three.js setup ─────────────────────────────────────────
+
+  /**
+   * Initialises Three.js renderer, scene, camera, and lights.
+   * @param {boolean} isWebXR       - True for WebXR mode (canvas managed by WebXR)
+   * @param {boolean} [transparent] - True for camera overlay mode
+   * @private
+   */
+  function _setupThreeJS(isWebXR, transparent = false) {
+    _scene  = new THREE.Scene();
+    _camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 100);
+    _camera.position.set(0, 1.2, 2);
+
+    // Lighting
+    const ambient  = new THREE.AmbientLight(0xffffff, 0.7);
+    const dir      = new THREE.DirectionalLight(0xffffff, 1.0);
+    dir.position.set(3, 5, 4);
+    _scene.add(ambient, dir);
+
+    // Renderer
+    const canvas = isWebXR ? undefined : document.getElementById('three-canvas');
+    _renderer = new THREE.WebGLRenderer({
+      canvas,
+      alpha:     true,
+      antialias: true,
+    });
+    _renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    _renderer.setSize(window.innerWidth, window.innerHeight);
+    _renderer.xr.enabled = isWebXR;
+
+    if (transparent) {
+      _renderer.setClearColor(0x000000, 0); // fully transparent background
+    }
+
+    // Reticle for WebXR
+    if (isWebXR) {
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(0.07, 0.11, 32),
+        new THREE.MeshBasicMaterial({ color: 0x4caf50, side: THREE.DoubleSide })
+      );
+      ring.matrixAutoUpdate = false;
+      ring.visible = false;
+      _reticle = ring;
+      _scene.add(_reticle);
+    }
+
+    window.addEventListener('resize', () => {
+      if (!_renderer) return;
+      _camera.aspect = window.innerWidth / window.innerHeight;
+      _camera.updateProjectionMatrix();
+      _renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  }
+
+  // ── Carbon scene builder ────────────────────────────────────
+
+  /**
+   * Builds the 3D carbon visualisation at the given world position.
+   * Each emission category is a cylinder; height = kg CO2.
+   * Net balance is shown as a central sphere with particle cloud.
+   * @param {THREE.Vector3} origin - World position to place the scene
+   * @private
+   */
+  function _buildCarbonScene(origin) {
+    const { totals, cats } = _carbonData;
+    const SCALE   = 0.004; // metres per kg CO2
+    const SPACING = 0.28;
+    const catKeys = ['transport', 'food', 'energy', 'shopping'];
+    const startX  = origin.x - ((catKeys.length - 1) * SPACING) / 2;
+
+    catKeys.forEach((cat, i) => {
+      const kg = cats[cat] || 0;
+      if (kg <= 0) return;
+
+      const h = Math.max(kg * SCALE, 0.05);
+      const r = 0.06 + Math.min(kg * SCALE * 0.18, 0.07);
+
+      const mesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(r, r * 1.2, h, 16),
+        new THREE.MeshPhongMaterial({
+          color:       COLORS[cat] || 0xcccccc,
+          shininess:   60,
           transparent: true,
-          opacity:   0.88,
-        });
+          opacity:     0.88,
+        })
+      );
 
-        const mesh = new THREE.Mesh(geo, mat);
-        mesh.position.set(
-          startX + i * spacing,
-          origin.y + height / 2,
-          origin.z
-        );
-        _scene.add(mesh);
+      mesh.position.set(startX + i * SPACING, origin.y + h / 2, origin.z);
+      _scene.add(mesh);
 
-        // Label plane (using canvas texture)
-        const labelTex = _makeLabel(cat, kg.toFixed(0) + ' kg');
-        const labelGeo = new THREE.PlaneGeometry(0.22, 0.07);
-        const labelMat = new THREE.MeshBasicMaterial({ map: labelTex, transparent: true, side: THREE.DoubleSide });
-        const labelMesh = new THREE.Mesh(labelGeo, labelMat);
-        labelMesh.position.set(
-          startX + i * spacing,
-          origin.y + height + 0.06,
-          origin.z
-        );
-        _scene.add(labelMesh);
+      // Label
+      const labelTex = _makeLabel(cat, `${kg.toFixed(0)} kg`);
+      const labelMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.2, 0.065),
+        new THREE.MeshBasicMaterial({ map: labelTex, transparent: true, side: THREE.DoubleSide })
+      );
+      labelMesh.position.set(startX + i * SPACING, origin.y + h + 0.055, origin.z);
+      _scene.add(labelMesh);
 
-        // Pulse animation
-        _animatePulse(mesh, height);
-      });
+      _pulseY(mesh);
+    });
 
-      // Net sphere (positive = red cloud of CO2, negative = green relief)
-      const netKg  = totals.net;
-      const netR   = Math.max(Math.abs(netKg) * SCALE * 1.5, 0.06);
-      const netGeo = new THREE.SphereGeometry(netR, 24, 24);
-      const netMat = new THREE.MeshPhongMaterial({
-        color:       netKg > 0 ? 0xf44336 : 0x4caf50,
-        shininess:   80,
+    // Net sphere
+    const netKg = totals.net;
+    const netR  = Math.max(Math.abs(netKg) * SCALE * 1.4, 0.055);
+    const netMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(netR, 24, 24),
+      new THREE.MeshPhongMaterial({
+        color:       netKg > 0 ? 0xef5350 : 0x4caf50,
+        shininess:   90,
         transparent: true,
-        opacity:     0.75,
-        wireframe:   false,
-      });
+        opacity:     0.78,
+      })
+    );
+    netMesh.position.set(origin.x, origin.y + 0.5, origin.z - 0.3);
+    _scene.add(netMesh);
 
-      const netMesh = new THREE.Mesh(netGeo, netMat);
-      netMesh.position.set(
-        origin.x,
-        origin.y + 0.55,
-        origin.z - 0.35
-      );
-      _scene.add(netMesh);
+    _addParticles(netMesh.position, netKg > 0 ? 0xef5350 : 0x4caf50,
+      Math.min(Math.floor(Math.abs(netKg) * 0.4), 50));
 
-      // Add "CO2 cloud" particles around net sphere
-      _addParticles(netMesh.position, netKg > 0 ? 0xf44336 : 0x4caf50, Math.min(Math.abs(netKg) * 0.5, 60));
+    // Ground ring
+    const ringMesh = new THREE.Mesh(
+      new THREE.RingGeometry(catKeys.length * SPACING * 0.5 + 0.04,
+                             catKeys.length * SPACING * 0.5 + 0.07, 64),
+      new THREE.MeshBasicMaterial({ color: 0x333333, side: THREE.DoubleSide })
+    );
+    ringMesh.rotation.x = -Math.PI / 2;
+    ringMesh.position.set(origin.x, origin.y + 0.001, origin.z);
+    _scene.add(ringMesh);
+  }
 
-      // Wire frame ground ring
-      const ringGeo = new THREE.RingGeometry(
-        catKeys.length * spacing * 0.5 + 0.05,
-        catKeys.length * spacing * 0.5 + 0.08,
-        64
-      );
-      const ringMat = new THREE.MeshBasicMaterial({ color: 0x333333, side: THREE.DoubleSide });
-      const ring    = new THREE.Mesh(ringGeo, ringMat);
-      ring.rotation.x = -Math.PI / 2;
-      ring.position.set(origin.x, origin.y + 0.001, origin.z);
-      _scene.add(ring);
+  /** @private Canvas texture label for a cylinder */
+  function _makeLabel(title, sub) {
+    const c = document.createElement('canvas');
+    c.width  = 256; c.height = 80;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.fillRect(0, 0, 256, 80);
+    ctx.fillStyle  = '#fff';
+    ctx.font       = '700 17px Courier New';
+    ctx.textAlign  = 'center';
+    ctx.fillText(title.toUpperCase(), 128, 28);
+    ctx.fillStyle  = '#aaa';
+    ctx.font       = '13px Courier New';
+    ctx.fillText(sub, 128, 54);
+    return new THREE.CanvasTexture(c);
+  }
+
+  /** @private Gentle Y-scale pulse animation */
+  function _pulseY(mesh) {
+    let t = Math.random() * Math.PI * 2;
+    const tick = () => {
+      t += 0.015;
+      mesh.scale.y = 1 + Math.sin(t) * 0.04;
+      const id = requestAnimationFrame(tick);
+      _animFrames.push(id);
+    };
+    tick();
+  }
+
+  /** @private Orbiting particle cloud around a point */
+  function _addParticles(center, color, count) {
+    count = Math.max(count, 5);
+    const positions = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const r     = 0.12 + Math.random() * 0.22;
+      const theta = Math.random() * Math.PI * 2;
+      const phi   = Math.random() * Math.PI;
+      positions[i * 3]     = center.x + r * Math.sin(phi) * Math.cos(theta);
+      positions[i * 3 + 1] = center.y + r * Math.sin(phi) * Math.sin(theta);
+      positions[i * 3 + 2] = center.z + r * Math.cos(phi);
     }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const pts = new THREE.Points(
+      geo,
+      new THREE.PointsMaterial({ color, size: 0.011, transparent: true, opacity: 0.65 })
+    );
+    _scene.add(pts);
 
-    function _makeLabel(text, sub) {
-      const canvas  = document.createElement('canvas');
-      canvas.width  = 256;
-      canvas.height = 80;
-      const ctx = canvas.getContext('2d');
+    const spin = () => {
+      pts.rotation.y += 0.004;
+      const id = requestAnimationFrame(spin);
+      _animFrames.push(id);
+    };
+    spin();
+  }
 
-      ctx.fillStyle = 'rgba(0,0,0,0.6)';
-      ctx.fillRect(0, 0, 256, 80);
+  // ── Orbit controls (fallback / camera3D) ───────────────────
 
-      ctx.fillStyle  = '#ffffff';
-      ctx.font       = '700 18px Courier New';
-      ctx.textAlign  = 'center';
-      ctx.fillText(text.toUpperCase(), 128, 30);
+  /**
+   * Attaches mouse and touch drag-to-rotate and pinch-to-zoom
+   * to the Three.js canvas for non-WebXR modes.
+   * @private
+   */
+  function _setupOrbitControls() {
+    const canvas = document.getElementById('three-canvas');
+    let isDragging = false;
+    let lastX = 0, lastY = 0;
+    let theta = 0, phi = Math.PI / 4;
+    const radius = 2.5;
+    const target = new THREE.Vector3(0, 0.2, -2);
 
-      ctx.fillStyle  = '#aaaaaa';
-      ctx.font       = '14px Courier New';
-      ctx.fillText(sub, 128, 56);
-
-      const tex = new THREE.CanvasTexture(canvas);
-      return tex;
+    function updateCam() {
+      _camera.position.x = target.x + radius * Math.sin(phi) * Math.sin(theta);
+      _camera.position.y = target.y + radius * Math.cos(phi);
+      _camera.position.z = target.z + radius * Math.sin(phi) * Math.cos(theta);
+      _camera.lookAt(target);
     }
+    updateCam();
 
-    function _animatePulse(mesh, baseHeight) {
-      let t = 0;
-      const orig = mesh.scale.y;
-      const loop = () => {
-        t += 0.01;
-        mesh.scale.y = orig + Math.sin(t) * 0.04;
-        mesh.position.y = mesh.position.y; // re-center not needed since we pulse scale
-        requestAnimationFrame(loop);
-      };
-      loop();
-    }
+    // Mouse
+    canvas.addEventListener('mousedown', e => { isDragging = true; lastX = e.clientX; lastY = e.clientY; });
+    window.addEventListener('mouseup',   () => { isDragging = false; });
+    window.addEventListener('mousemove', e => {
+      if (!isDragging) return;
+      theta -= (e.clientX - lastX) * 0.006;
+      phi    = Math.max(0.1, Math.min(Math.PI - 0.1, phi - (e.clientY - lastY) * 0.006));
+      lastX  = e.clientX; lastY = e.clientY;
+      updateCam();
+    });
 
-    function _addParticles(center, color, count) {
-      count = Math.floor(Math.max(count, 5));
-      const geo = new THREE.BufferGeometry();
-      const positions = new Float32Array(count * 3);
+    // Wheel zoom
+    canvas.addEventListener('wheel', e => {
+      e.preventDefault();
+      const dir = new THREE.Vector3().subVectors(_camera.position, target).normalize();
+      _camera.position.addScaledVector(dir, e.deltaY * 0.003);
+    }, { passive: false });
 
-      for (let i = 0; i < count; i++) {
-        const r = 0.15 + Math.random() * 0.25;
-        const theta = Math.random() * Math.PI * 2;
-        const phi   = Math.random() * Math.PI;
-        positions[i * 3]     = center.x + r * Math.sin(phi) * Math.cos(theta);
-        positions[i * 3 + 1] = center.y + r * Math.sin(phi) * Math.sin(theta);
-        positions[i * 3 + 2] = center.z + r * Math.cos(phi);
+    // Touch drag
+    let lastTX = 0, lastTY = 0;
+    let lastPinchDist = 0;
+
+    canvas.addEventListener('touchstart', e => {
+      if (e.touches.length === 1) {
+        lastTX = e.touches[0].clientX;
+        lastTY = e.touches[0].clientY;
+      } else if (e.touches.length === 2) {
+        lastPinchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
       }
+    }, { passive: true });
 
-      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-      const mat = new THREE.PointsMaterial({ color, size: 0.012, transparent: true, opacity: 0.6 });
-      const pts = new THREE.Points(geo, mat);
-      _scene.add(pts);
-
-      // Slowly rotate particles
-      const animate = () => {
-        pts.rotation.y += 0.003;
-        requestAnimationFrame(animate);
-      };
-      animate();
-    }
-
-    // -------------------------------------------------------------------------
-    // Manual orbit controls (fallback mode)
-    // -------------------------------------------------------------------------
-    function _setupOrbitControls() {
-      const canvas = document.getElementById('three-canvas');
-      let isDragging = false;
-      let lastX = 0, lastY = 0;
-      let theta = 0, phi = Math.PI / 4;
-      const radius = 2.5;
-      const target = new THREE.Vector3(0, 0.3, -2);
-
-      function _updateCamera() {
-        _camera.position.x = target.x + radius * Math.sin(phi) * Math.sin(theta);
-        _camera.position.y = target.y + radius * Math.cos(phi);
-        _camera.position.z = target.z + radius * Math.sin(phi) * Math.cos(theta);
-        _camera.lookAt(target);
+    canvas.addEventListener('touchmove', e => {
+      e.preventDefault();
+      if (e.touches.length === 1) {
+        theta -= (e.touches[0].clientX - lastTX) * 0.007;
+        phi    = Math.max(0.1, Math.min(Math.PI - 0.1, phi - (e.touches[0].clientY - lastTY) * 0.007));
+        lastTX = e.touches[0].clientX;
+        lastTY = e.touches[0].clientY;
+        updateCam();
+      } else if (e.touches.length === 2) {
+        const dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        const delta = lastPinchDist - dist;
+        const dir   = new THREE.Vector3().subVectors(_camera.position, target).normalize();
+        _camera.position.addScaledVector(dir, delta * 0.005);
+        lastPinchDist = dist;
       }
+    }, { passive: false });
+  }
 
-      _updateCamera();
+  return { init, startWebXR, startCamera3D, startFallback, placeScene, exitAR, exitFallback };
+})();
 
-      canvas.addEventListener('mousedown', e => { isDragging = true; lastX = e.clientX; lastY = e.clientY; });
-      window.addEventListener('mouseup',   () => { isDragging = false; });
-      window.addEventListener('mousemove', e => {
-        if (!isDragging) return;
-        theta -= (e.clientX - lastX) * 0.005;
-        phi    = Math.max(0.1, Math.min(Math.PI - 0.1, phi - (e.clientY - lastY) * 0.005));
-        lastX  = e.clientX;
-        lastY  = e.clientY;
-        _updateCamera();
-      });
-
-      canvas.addEventListener('wheel', e => {
-        // zoom handled by moving camera
-        const dir = new THREE.Vector3().subVectors(_camera.position, target).normalize();
-        _camera.position.addScaledVector(dir, e.deltaY * 0.002);
-      });
-
-      // Touch support
-      let lastTouchX = 0, lastTouchY = 0;
-      canvas.addEventListener('touchstart', e => { lastTouchX = e.touches[0].clientX; lastTouchY = e.touches[0].clientY; });
-      canvas.addEventListener('touchmove',  e => {
-        e.preventDefault();
-        theta -= (e.touches[0].clientX - lastTouchX) * 0.007;
-        phi    = Math.max(0.1, Math.min(Math.PI - 0.1, phi - (e.touches[0].clientY - lastTouchY) * 0.007));
-        lastTouchX = e.touches[0].clientX;
-        lastTouchY = e.touches[0].clientY;
-        _updateCamera();
-      }, { passive: false });
-    }
-
-    return { init, startAR, startFallback, placeScene, exitAR, exitFallback };
-  })();
-
-  // Boot
-  window.addEventListener('DOMContentLoaded', () => ARApp.init());
-  </script>
+window.addEventListener('DOMContentLoaded', () => ARApp.init());
+</script>
 </body>
 </html>

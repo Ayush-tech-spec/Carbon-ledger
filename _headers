@@ -1,0 +1,11 @@
+/*
+  Permissions-Policy: camera=*, microphone=()
+  Feature-Policy: camera *
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+  Cross-Origin-Embedder-Policy: unsafe-none
+
+/ar.html
+  Permissions-Policy: camera=*, microphone=()
+  Feature-Policy: camera *
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+  Cross-Origin-Embedder-Policy: unsafe-none
