@@ -940,6 +940,8 @@
             _renderer = null;
           }
           _placed = false;
+          const hud = document.getElementById("ar-hud");
+          if (hud) hud.remove();
         }
 
         // ── Three.js setup ─────────────────────────────────────────
@@ -1020,44 +1022,56 @@
          */
         function _buildCarbonScene(origin) {
           const { totals, cats } = _carbonData;
-          const SCALE = 0.004; // metres per kg CO2
-          const SPACING = 0.28;
+
+          // Demo fallback: if store is empty/zero, show sample data so there is always something to see
+          const DEMO = { transport: 320, food: 180, energy: 140, shopping: 95 };
+          const isDemoMode = Object.values(cats).every((v) => !v || v <= 0);
+          const activeCats = isDemoMode ? DEMO : cats;
+          const netKg = isDemoMode
+            ? Object.values(DEMO).reduce((a, b) => a + b, 0)
+            : totals.net || 0;
+
+          // Show the numbers as a HUD overlay so the user can actually read them
+          _showHUD(activeCats, netKg, isDemoMode);
+
+          const SCALE = 0.006; // bigger so bars are clearly visible on a floor
+          const SPACING = 0.38;
           const catKeys = ["transport", "food", "energy", "shopping"];
           const startX = origin.x - ((catKeys.length - 1) * SPACING) / 2;
 
           catKeys.forEach((cat, i) => {
-            const kg = cats[cat] || 0;
+            const kg = activeCats[cat] || 0;
             if (kg <= 0) return;
 
-            const h = Math.max(kg * SCALE, 0.05);
-            const r = 0.06 + Math.min(kg * SCALE * 0.18, 0.07);
+            const h = Math.max(kg * SCALE, 0.12); // minimum visible height
+            const r = 0.07 + Math.min(kg * SCALE * 0.15, 0.08);
 
             const mesh = new THREE.Mesh(
-              new THREE.CylinderGeometry(r, r * 1.2, h, 16),
+              new THREE.CylinderGeometry(r, r * 1.15, h, 20),
               new THREE.MeshPhongMaterial({
                 color: COLORS[cat] || 0xcccccc,
-                shininess: 60,
+                shininess: 80,
                 transparent: true,
-                opacity: 0.88,
+                opacity: 0.92,
               }),
             );
-
             mesh.position.set(startX + i * SPACING, origin.y + h / 2, origin.z);
             _scene.add(mesh);
 
-            // Label
-            const labelTex = _makeLabel(cat, `${kg.toFixed(0)} kg`);
+            // Big label floating above the bar
+            const labelTex = _makeLabel(cat, Math.round(kg) + " kg");
             const labelMesh = new THREE.Mesh(
-              new THREE.PlaneGeometry(0.2, 0.065),
+              new THREE.PlaneGeometry(0.3, 0.15),
               new THREE.MeshBasicMaterial({
                 map: labelTex,
                 transparent: true,
                 side: THREE.DoubleSide,
+                depthWrite: false,
               }),
             );
             labelMesh.position.set(
               startX + i * SPACING,
-              origin.y + h + 0.055,
+              origin.y + h + 0.11,
               origin.z,
             );
             _scene.add(labelMesh);
@@ -1065,59 +1079,150 @@
             _pulseY(mesh);
           });
 
-          // Net sphere
-          const netKg = totals.net;
-          const netR = Math.max(Math.abs(netKg) * SCALE * 1.4, 0.055);
+          // Net sphere (bigger, clearer)
+          const netR = Math.max(Math.abs(netKg) * SCALE * 0.5, 0.1);
+          const netColor = netKg > 0 ? 0xef5350 : 0x4caf50;
           const netMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(netR, 24, 24),
+            new THREE.SphereGeometry(netR, 32, 32),
             new THREE.MeshPhongMaterial({
-              color: netKg > 0 ? 0xef5350 : 0x4caf50,
-              shininess: 90,
+              color: netColor,
+              shininess: 120,
               transparent: true,
-              opacity: 0.78,
+              opacity: 0.92,
             }),
           );
-          netMesh.position.set(origin.x, origin.y + 0.5, origin.z - 0.3);
+          netMesh.position.set(origin.x, origin.y + 0.7, origin.z - 0.4);
           _scene.add(netMesh);
+
+          // Label above net sphere
+          const netLabelTex = _makeLabel("NET CO2", Math.round(netKg) + " kg");
+          const netLabel = new THREE.Mesh(
+            new THREE.PlaneGeometry(0.34, 0.15),
+            new THREE.MeshBasicMaterial({
+              map: netLabelTex,
+              transparent: true,
+              side: THREE.DoubleSide,
+              depthWrite: false,
+            }),
+          );
+          netLabel.position.set(
+            origin.x,
+            origin.y + 0.7 + netR + 0.12,
+            origin.z - 0.4,
+          );
+          _scene.add(netLabel);
 
           _addParticles(
             netMesh.position,
-            netKg > 0 ? 0xef5350 : 0x4caf50,
-            Math.min(Math.floor(Math.abs(netKg) * 0.4), 50),
+            netColor,
+            Math.min(Math.floor(Math.abs(netKg) * 0.12), 60),
           );
 
-          // Ground ring
+          // Ground ring: bright green so it reads on any floor
           const ringMesh = new THREE.Mesh(
             new THREE.RingGeometry(
-              catKeys.length * SPACING * 0.5 + 0.04,
-              catKeys.length * SPACING * 0.5 + 0.07,
+              catKeys.length * SPACING * 0.52,
+              catKeys.length * SPACING * 0.57,
               64,
             ),
             new THREE.MeshBasicMaterial({
-              color: 0x333333,
+              color: 0x4caf50,
               side: THREE.DoubleSide,
+              transparent: true,
+              opacity: 0.55,
             }),
           );
           ringMesh.rotation.x = -Math.PI / 2;
-          ringMesh.position.set(origin.x, origin.y + 0.001, origin.z);
+          ringMesh.position.set(origin.x, origin.y + 0.003, origin.z);
           _scene.add(ringMesh);
         }
 
-        /** @private Canvas texture label for a cylinder */
+        /** Fixed HUD panel that shows all numbers as readable text on screen */
+        function _showHUD(cats, netKg, isDemo) {
+          const existing = document.getElementById("ar-hud");
+          if (existing) existing.remove();
+
+          const hud = document.createElement("div");
+          hud.id = "ar-hud";
+          hud.style.cssText = [
+            "position:fixed",
+            "bottom:70px",
+            "left:0",
+            "right:0",
+            "z-index:160",
+            "display:flex",
+            "flex-direction:column",
+            "align-items:center",
+            "gap:6px",
+            "pointer-events:none",
+          ].join(";");
+
+          const demoBadge = isDemo
+            ? '<div style="font-size:10px;background:rgba(255,152,0,0.88);color:#000;padding:3px 12px;border-radius:999px;font-weight:700;letter-spacing:0.08em">DEMO DATA — log entries to see your real numbers</div>'
+            : "";
+
+          const catColors = {
+            transport: "#e53935",
+            food: "#fb8c00",
+            energy: "#fdd835",
+            shopping: "#8e24aa",
+          };
+          const rows = Object.entries(cats)
+            .map(function (entry) {
+              var k = entry[0];
+              var v = entry[1];
+              return (
+                '<div style="display:flex;justify-content:space-between;gap:16px">' +
+                '<span style="color:' +
+                catColors[k] +
+                ';font-weight:700;text-transform:uppercase">' +
+                k +
+                "</span>" +
+                '<span style="color:#fff;font-weight:600">' +
+                Math.round(v || 0) +
+                " kg</span>" +
+                "</div>"
+              );
+            })
+            .join("");
+
+          var netColor = netKg > 0 ? "#ef5350" : "#4caf50";
+          hud.innerHTML =
+            demoBadge +
+            '<div style="background:rgba(0,0,0,0.78);border:1px solid rgba(76,175,80,0.45);border-radius:12px;padding:12px 20px;font-family:monospace;font-size:13px;min-width:220px">' +
+            rows +
+            '<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,0.15);padding-top:8px;font-size:15px;color:' +
+            netColor +
+            ';font-weight:700;display:flex;justify-content:space-between">' +
+            "<span>TOTAL NET</span><span>" +
+            Math.round(netKg) +
+            " kg CO₂</span>" +
+            "</div></div>";
+
+          document.body.appendChild(hud);
+        }
+
+        /** Canvas texture label: big, readable, with rounded background */
         function _makeLabel(title, sub) {
-          const c = document.createElement("canvas");
-          c.width = 256;
-          c.height = 80;
-          const ctx = c.getContext("2d");
-          ctx.fillStyle = "rgba(0,0,0,0.55)";
-          ctx.fillRect(0, 0, 256, 80);
-          ctx.fillStyle = "#fff";
-          ctx.font = "700 17px Courier New";
+          var c = document.createElement("canvas");
+          c.width = 320;
+          c.height = 110;
+          var ctx = c.getContext("2d");
+
+          ctx.fillStyle = "rgba(0,0,0,0.75)";
+          ctx.beginPath();
+          ctx.roundRect(4, 4, 312, 102, 14);
+          ctx.fill();
+
+          ctx.fillStyle = "#ffffff";
+          ctx.font = '700 22px "Courier New", monospace';
           ctx.textAlign = "center";
-          ctx.fillText(title.toUpperCase(), 128, 28);
-          ctx.fillStyle = "#aaa";
-          ctx.font = "13px Courier New";
-          ctx.fillText(sub, 128, 54);
+          ctx.fillText(title.toUpperCase(), 160, 42);
+
+          ctx.fillStyle = "#4caf50";
+          ctx.font = '700 28px "Courier New", monospace';
+          ctx.fillText(sub, 160, 84);
+
           return new THREE.CanvasTexture(c);
         }
 
