@@ -278,54 +278,89 @@ const ARApp = (() => {
    * Captures a frame from the video feed, sends it to the backend
    * Gemini Vision endpoint, and shows the result card.
    */
-  async function captureAndScan() {
-    if (_scanning) return;
-    _scanning = true;
-
-    const btn  = document.getElementById('btn-scan-capture');
-    const hint = document.getElementById('scan-hint-text');
-    btn.classList.add('scanning');
-    btn.disabled  = true;
-    hint.replaceChildren();
-    const spinner = document.createElement('span');
-    spinner.className = 'spinner';
-    hint.appendChild(spinner);
-    hint.appendChild(document.createTextNode(' Identifying object...'));
-
-    // Capture frame from video
-    const video  = document.getElementById('camera-video');
+  /**
+   * Captures a frame from a HTMLVideoElement and converts it to base64 JPEG format.
+   * @param {HTMLVideoElement} video - The video element to capture from.
+   * @returns {string} The base64-encoded JPEG image string.
+   */
+  function _getVideoFrameBase64(video) {
     const canvas = document.createElement('canvas');
     canvas.width  = video.videoWidth  || 640;
     canvas.height = video.videoHeight || 480;
     const ctx = canvas.getContext('2d');
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    return canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
+  }
 
-    // Convert to base64 JPEG (lower quality to keep payload small)
-    const base64 = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
-
-    try {
-      const res = await fetch(`${BACKEND}/api/vision`, {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ image: base64, mimeType: 'image/jpeg' }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `Vision API error ${res.status}`);
-      }
-
-      const data = await res.json();
-      _showResult(data);
-      hint.textContent = 'Tap to scan another object';
-
-    } catch (err) {
-      hint.textContent = `Scan failed: ${err.message}`;
-      setTimeout(() => { hint.textContent = 'Point at any object and tap the button'; }, 3000);
-    } finally {
+  /**
+   * Updates the UI buttons and loader text state during visual scanning.
+   * @param {boolean} isScanning - Whether scanning is currently in progress.
+   * @param {string} [message] - Optional message to show during scan state transition.
+   */
+  function _setScanningUI(isScanning, message) {
+    const btn  = document.getElementById('btn-scan-capture');
+    const hint = document.getElementById('scan-hint-text');
+    if (!btn || !hint) return;
+    
+    if (isScanning) {
+      btn.classList.add('scanning');
+      btn.disabled = true;
+      hint.replaceChildren();
+      const spinner = document.createElement('span');
+      spinner.className = 'spinner';
+      hint.appendChild(spinner);
+      hint.appendChild(document.createTextNode(message || ' Identifying object...'));
+    } else {
       btn.classList.remove('scanning');
       btn.disabled = false;
-      _scanning    = false;
+      if (message) {
+        hint.textContent = message;
+      }
+    }
+  }
+
+  /**
+   * Sends the base64 image data to the backend Gemini Vision API.
+   * @param {string} base64Image - The base64-encoded image payload.
+   * @returns {Promise<Object>} The parsed JSON response from the API.
+   */
+  async function _fetchVisionAnalysis(base64Image) {
+    const res = await fetch(`${BACKEND}/api/vision`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ image: base64Image, mimeType: 'image/jpeg' }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Vision API error ${res.status}`);
+    }
+    return res.json();
+  }
+
+  /**
+   * Captures a frame from the video feed, sends it to the backend
+   * Gemini Vision endpoint, and shows the result card.
+   */
+  async function captureAndScan() {
+    if (_scanning) return;
+    _scanning = true;
+    _setScanningUI(true, ' Identifying object...');
+
+    try {
+      const video  = document.getElementById('camera-video');
+      const base64 = _getVideoFrameBase64(video);
+      const data   = await _fetchVisionAnalysis(base64);
+      _showResult(data);
+      _setScanningUI(false, 'Tap to scan another object');
+    } catch (err) {
+      _setScanningUI(false, `Scan failed: ${err.message}`);
+      setTimeout(() => {
+        const hint = document.getElementById('scan-hint-text');
+        if (hint) hint.textContent = 'Point at any object and tap the button';
+      }, 3000);
+    } finally {
+      _scanning = false;
     }
   }
 
@@ -516,6 +551,79 @@ const ARApp = (() => {
 
   // ── Carbon 3D scene ──────────────────────────────────────────
 
+  /**
+   * Creates and adds a 3D cylindrical pillar representing a carbon category to the scene.
+   * @param {string} cat - The category name.
+   * @param {number} kg - The weight in kg of CO2.
+   * @param {number} index - The index of the category.
+   * @param {number} startX - The starting X coordinate.
+   * @param {THREE.Vector3} origin - The origin point.
+   * @param {number} scale - The scaling factor.
+   * @param {number} spacing - The spacing between pillars.
+   */
+  function _createCategoryPillar(cat, kg, index, startX, origin, scale, spacing) {
+    const h = Math.max(kg * scale, 0.05);
+    const r = 0.06 + Math.min(kg * scale * 0.18, 0.07);
+
+    const mesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(r, r * 1.2, h, 16),
+      new THREE.MeshPhongMaterial({ color: COLORS[cat], shininess: 60, transparent: true, opacity: 0.88 })
+    );
+    mesh.position.set(startX + index * spacing, origin.y + h / 2, origin.z);
+    _scene.add(mesh);
+
+    const lbl = new THREE.Mesh(
+      new THREE.PlaneGeometry(0.2, 0.065),
+      new THREE.MeshBasicMaterial({ map: _makeLabel(cat, `${kg.toFixed(0)} kg`), transparent: true, side: THREE.DoubleSide })
+    );
+    lbl.position.set(startX + index * spacing, origin.y + h + 0.055, origin.z);
+    _scene.add(lbl);
+
+    let t = Math.random() * Math.PI * 2;
+    const pulse = () => {
+      t += 0.015;
+      mesh.scale.y = 1 + Math.sin(t) * 0.04;
+      const id = requestAnimationFrame(pulse);
+      _animFrames.push(id);
+    };
+    pulse();
+  }
+
+  /**
+   * Creates and adds a 3D sphere representing net carbon footprint to the scene.
+   * @param {THREE.Vector3} origin - The origin point.
+   * @param {number} netKg - The net weight in kg of CO2.
+   * @param {number} scale - The scaling factor.
+   */
+  function _createNetSphere(origin, netKg, scale) {
+    const netR   = Math.max(Math.abs(netKg) * scale * 1.4, 0.055);
+    const sphere = new THREE.Mesh(
+      new THREE.SphereGeometry(netR, 24, 24),
+      new THREE.MeshPhongMaterial({ color: netKg > 0 ? 0xef5350 : 0x4caf50, shininess: 90, transparent: true, opacity: 0.78 })
+    );
+    sphere.position.set(origin.x, origin.y + 0.5, origin.z - 0.3);
+    _scene.add(sphere);
+
+    _addParticles(sphere.position, netKg > 0 ? 0xef5350 : 0x4caf50,
+      Math.min(Math.floor(Math.abs(netKg) * 0.4), 50));
+  }
+
+  /**
+   * Creates and adds a base floor ring under the pillars to the scene.
+   * @param {THREE.Vector3} origin - The origin point.
+   * @param {number} keysLength - Number of categories.
+   * @param {number} spacing - The spacing between pillars.
+   */
+  function _createFloorRing(origin, keysLength, spacing) {
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(keysLength * spacing * 0.5 + 0.04, keysLength * spacing * 0.5 + 0.07, 64),
+      new THREE.MeshBasicMaterial({ color: 0x333333, side: THREE.DoubleSide })
+    );
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(origin.x, origin.y + 0.001, origin.z);
+    _scene.add(ring);
+  }
+
   function _buildCarbonScene(origin) {
     const { totals, cats } = _carbonData;
     const SCALE   = 0.004;
@@ -526,52 +634,11 @@ const ARApp = (() => {
     keys.forEach((cat, i) => {
       const kg = cats[cat] || 0;
       if (kg <= 0) return;
-      const h = Math.max(kg * SCALE, 0.05);
-      const r = 0.06 + Math.min(kg * SCALE * 0.18, 0.07);
-
-      const mesh = new THREE.Mesh(
-        new THREE.CylinderGeometry(r, r * 1.2, h, 16),
-        new THREE.MeshPhongMaterial({ color: COLORS[cat], shininess: 60, transparent: true, opacity: 0.88 })
-      );
-      mesh.position.set(startX + i * SPACING, origin.y + h / 2, origin.z);
-      _scene.add(mesh);
-
-      const lbl = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.2, 0.065),
-        new THREE.MeshBasicMaterial({ map: _makeLabel(cat, `${kg.toFixed(0)} kg`), transparent: true, side: THREE.DoubleSide })
-      );
-      lbl.position.set(startX + i * SPACING, origin.y + h + 0.055, origin.z);
-      _scene.add(lbl);
-
-      let t = Math.random() * Math.PI * 2;
-      const pulse = () => {
-        t += 0.015;
-        mesh.scale.y = 1 + Math.sin(t) * 0.04;
-        const id = requestAnimationFrame(pulse);
-        _animFrames.push(id);
-      };
-      pulse();
+      _createCategoryPillar(cat, kg, i, startX, origin, SCALE, SPACING);
     });
 
-    const netKg  = totals.net;
-    const netR   = Math.max(Math.abs(netKg) * SCALE * 1.4, 0.055);
-    const sphere = new THREE.Mesh(
-      new THREE.SphereGeometry(netR, 24, 24),
-      new THREE.MeshPhongMaterial({ color: netKg > 0 ? 0xef5350 : 0x4caf50, shininess: 90, transparent: true, opacity: 0.78 })
-    );
-    sphere.position.set(origin.x, origin.y + 0.5, origin.z - 0.3);
-    _scene.add(sphere);
-
-    _addParticles(sphere.position, netKg > 0 ? 0xef5350 : 0x4caf50,
-      Math.min(Math.floor(Math.abs(netKg) * 0.4), 50));
-
-    const ring = new THREE.Mesh(
-      new THREE.RingGeometry(keys.length * SPACING * 0.5 + 0.04, keys.length * SPACING * 0.5 + 0.07, 64),
-      new THREE.MeshBasicMaterial({ color: 0x333333, side: THREE.DoubleSide })
-    );
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.set(origin.x, origin.y + 0.001, origin.z);
-    _scene.add(ring);
+    _createNetSphere(origin, totals.net, SCALE);
+    _createFloorRing(origin, keys.length, SPACING);
   }
 
   function _makeLabel(title, sub) {
