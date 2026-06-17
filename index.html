@@ -1,281 +1,446 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en" data-theme="dark">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Carbon Ledger | Personal Carbon Accounting</title>
-  <meta name="description" content="Track, understand, and reduce your carbon footprint using a double-entry ledger system with AI-powered insights." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css" />
-</head>
-<body>
-
-  <!-- Header -->
-  <header class="header" role="banner">
-    <div class="container">
-      <div class="header-inner">
-
-        <div class="header-brand">
-          <div class="brand-icon" aria-hidden="true">
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-              <rect width="28" height="28" rx="6" fill="var(--olive-500)"/>
-              <path d="M7 20 L14 8 L21 20" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M9.5 16 H18.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-          </div>
-          <div>
-            <h1 class="brand-name">Carbon Ledger</h1>
-            <p class="brand-sub">Every tonne accounted for &bull; <span id="current-month">June 2026</span></p>
-          </div>
-        </div>
-
-        <div class="header-controls">
-          <div class="model-switcher">
-            <label class="model-label" for="model-select">AI</label>
-            <select id="model-select" class="model-select" aria-label="Select AI model">
-              <option value="claude">Claude</option>
-              <option value="grok">Grok</option>
-            </select>
-          </div>
-          <button class="theme-toggle" id="theme-toggle" aria-label="Toggle dark/light mode" onclick="toggleTheme()">
-            <span class="theme-icon" id="theme-icon">☀</span>
-          </button>
-        </div>
-
-      </div>
-    </div>
-  </header>
-
-  <!-- Balance Strip -->
-  <section class="balance-strip" role="region" aria-label="Account summary">
-    <div class="container">
-      <div class="balance-grid">
-        <div class="balance-card">
-          <div class="balance-card-label">Total Emitted</div>
-          <div class="balance-card-value debit" id="total-debit">0.0</div>
-          <div class="balance-card-unit">kg CO<sub>2</sub></div>
-        </div>
-        <div class="balance-card balance-card--mid">
-          <div class="balance-card-label">Total Offset</div>
-          <div class="balance-card-value credit" id="total-credit">0.0</div>
-          <div class="balance-card-unit">kg CO<sub>2</sub></div>
-        </div>
-        <div class="balance-card">
-          <div class="balance-card-label">Net Balance</div>
-          <div class="balance-card-value net" id="net-balance">0.0</div>
-          <div class="balance-card-unit">kg CO<sub>2</sub> outstanding</div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Main -->
-  <main class="main-content">
-    <div class="container">
-
-      <!-- Tabs -->
-      <nav class="tabs" role="tablist" aria-label="Main navigation">
-        <button class="tab-btn active" role="tab" aria-selected="true"  aria-controls="tab-journal"  id="btn-journal"  onclick="UI.switchTab('journal', this)">Journal</button>
-        <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-analysis" id="btn-analysis" onclick="UI.switchTab('analysis', this)">Analysis</button>
-        <button class="tab-btn"        role="tab" aria-selected="false" aria-controls="tab-actions"  id="btn-actions"  onclick="UI.switchTab('actions', this)">Actions</button>
-        <a href="ar.html" class="tab-btn tab-btn--ar" aria-label="View in AR / 3D">AR / 3D &#x2197;</a>
-      </nav>
-
-      <!-- Journal Tab -->
-      <div id="tab-journal" class="tab-panel active" role="tabpanel" aria-labelledby="btn-journal">
-
-        <div class="card">
-          <div class="card-header">
-            <span class="card-title">Log an entry</span>
-            <span class="card-hint">Debits = emissions, Credits = offsets</span>
-          </div>
-          <form id="entry-form" onsubmit="Journal.postEntry(event)" novalidate aria-label="Log a carbon entry">
-            <div class="form-grid form-grid--2">
-              <div class="form-group">
-                <label for="entry-category">Category</label>
-                <select id="entry-category" required aria-required="true">
-                  <option value="">-- select --</option>
-                  <optgroup label="Debits (Emissions)">
-                    <option value="car">Car journey</option>
-                    <option value="flight">Flight</option>
-                    <option value="meatmeal">Meal with meat</option>
-                    <option value="vegmeal">Vegetarian meal</option>
-                    <option value="electricbill">Electricity bill</option>
-                    <option value="gasbill">Gas / LPG bill</option>
-                    <option value="online_order">Online shopping order</option>
-                    <option value="custom_debit">Custom emission (kg CO2)</option>
-                  </optgroup>
-                  <optgroup label="Credits (Offsets)">
-                    <option value="tree">Tree planted</option>
-                    <option value="transit">Public transit trip</option>
-                    <option value="solar">Solar energy (kWh)</option>
-                    <option value="custom_credit">Custom offset (kg CO2)</option>
-                  </optgroup>
-                </select>
-              </div>
-              <div class="form-group">
-                <label for="entry-amount">Quantity <span class="unit-hint" id="unit-hint">select category first</span></label>
-                <input type="number" id="entry-amount" placeholder="e.g. 50" min="0" step="0.1" required aria-required="true" />
-              </div>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Carbon Ledger | Personal Carbon Accounting</title>
+    <meta
+      name="description"
+      content="Track, understand, and reduce your carbon footprint using a double-entry ledger system with AI-powered insights."
+    />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%236b7a45'/><text y='.9em' font-size='70' x='15'>🌿</text></svg>"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/styles.css" />
+  </head>
+  <body>
+    <!-- Header -->
+    <header class="header" role="banner">
+      <div class="container">
+        <div class="header-inner">
+          <div class="header-brand">
+            <div class="brand-icon" aria-hidden="true">
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <rect width="28" height="28" rx="6" fill="var(--olive-500)" />
+                <path
+                  d="M7 20 L14 8 L21 20"
+                  stroke="white"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M9.5 16 H18.5"
+                  stroke="white"
+                  stroke-width="1.5"
+                  stroke-linecap="round"
+                />
+              </svg>
             </div>
-            <div class="form-grid form-grid--3">
-              <div class="form-group form-group--wide">
-                <label for="entry-desc">Description <span class="optional">(optional)</span></label>
-                <input type="text" id="entry-desc" placeholder="e.g. Drive to office, Mumbai to Delhi flight" maxlength="120" />
-              </div>
-              <div class="form-group">
-                <label for="entry-date">Date</label>
-                <input type="date" id="entry-date" required aria-required="true" />
-              </div>
+            <div>
+              <h1 class="brand-name">Carbon Ledger</h1>
+              <p class="brand-sub">
+                Every tonne accounted for &bull;
+                <span id="current-month">June 2026</span>
+              </p>
             </div>
-            <div class="form-error" id="form-error" role="alert" aria-live="polite" hidden></div>
-            <button type="submit" class="btn-primary">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-              Post to Ledger
+          </div>
+          <div class="header-controls">
+            <div class="model-switcher">
+              <label class="model-label" for="model-select">AI</label>
+              <select
+                id="model-select"
+                class="model-select"
+                aria-label="Select AI model"
+              >
+                <option value="claude">Claude</option>
+                <option value="grok">Grok</option>
+              </select>
+            </div>
+            <button
+              class="theme-toggle"
+              id="theme-toggle"
+              aria-label="Toggle dark/light mode"
+            >
+              <span class="theme-icon" id="theme-icon">☀</span>
             </button>
-          </form>
-        </div>
-
-        <!-- AI Insight -->
-        <div class="insight-card" aria-live="polite">
-          <div class="insight-header">
-            <div class="insight-dot" id="insight-dot"></div>
-            <span class="insight-label" id="ai-provider-label">AI Insight</span>
-          </div>
-          <div id="ai-insight" class="insight-text insight-text--placeholder">
-            Post your first entry and the AI will analyse your carbon position.
           </div>
         </div>
+      </div>
+    </header>
 
-        <!-- Ledger Table -->
-        <div class="card card--table">
-          <div class="card-header">
-            <span class="card-title">Ledger entries</span>
-            <span class="folio-text" id="folio-total">Net: 0.0 kg CO<sub>2</sub></span>
+    <!-- Balance Strip -->
+    <section class="balance-strip" role="region" aria-label="Account summary">
+      <div class="container">
+        <div class="balance-grid">
+          <div class="balance-card">
+            <div class="balance-card-label">Total Emitted</div>
+            <div class="balance-card-value debit" id="total-debit">0.0</div>
+            <div class="balance-card-unit">kg CO<sub>2</sub></div>
           </div>
-          <div class="table-wrapper" role="region" aria-label="Carbon journal entries" tabindex="0">
-            <table class="ledger-table" aria-label="Carbon journal entries table">
-              <thead>
+          <div class="balance-card balance-card--mid">
+            <div class="balance-card-label">Total Offset</div>
+            <div class="balance-card-value credit" id="total-credit">0.0</div>
+            <div class="balance-card-unit">kg CO<sub>2</sub></div>
+          </div>
+          <div class="balance-card">
+            <div class="balance-card-label">Net Balance</div>
+            <div class="balance-card-value net" id="net-balance">0.0</div>
+            <div class="balance-card-unit">kg CO<sub>2</sub> outstanding</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main -->
+    <main class="main-content">
+      <div class="container">
+        <!-- Tabs -->
+        <nav class="tabs" role="tablist" aria-label="Main navigation">
+          <button
+            class="tab-btn active"
+            role="tab"
+            aria-selected="true"
+            aria-controls="tab-journal"
+            id="btn-journal"
+            data-tab="journal"
+          >
+            Journal
+          </button>
+          <button
+            class="tab-btn"
+            role="tab"
+            aria-selected="false"
+            aria-controls="tab-analysis"
+            id="btn-analysis"
+            data-tab="analysis"
+          >
+            Analysis
+          </button>
+          <button
+            class="tab-btn"
+            role="tab"
+            aria-selected="false"
+            aria-controls="tab-actions"
+            id="btn-actions"
+            data-tab="actions"
+          >
+            Actions
+          </button>
+          <a
+            href="ar.html"
+            class="tab-btn tab-btn--ar"
+            aria-label="View in AR / 3D"
+            >AR / 3D &#x2197;</a
+          >
+        </nav>
+
+        <!-- Journal Tab -->
+        <div
+          id="tab-journal"
+          class="tab-panel active"
+          role="tabpanel"
+          aria-labelledby="btn-journal"
+        >
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Log an entry</span>
+              <span class="card-hint"
+                >Debits = emissions, Credits = offsets</span
+              >
+            </div>
+            <form id="entry-form" novalidate aria-label="Log a carbon entry">
+              <div class="form-grid form-grid--2">
+                <div class="form-group">
+                  <label for="entry-category">Category</label>
+                  <select id="entry-category" required aria-required="true">
+                    <option value="">-- select --</option>
+                    <optgroup label="Debits (Emissions)">
+                      <option value="car">Car journey</option>
+                      <option value="flight">Flight</option>
+                      <option value="meatmeal">Meal with meat</option>
+                      <option value="vegmeal">Vegetarian meal</option>
+                      <option value="electricbill">Electricity bill</option>
+                      <option value="gasbill">Gas / LPG bill</option>
+                      <option value="online_order">
+                        Online shopping order
+                      </option>
+                      <option value="custom_debit">
+                        Custom emission (kg CO2)
+                      </option>
+                    </optgroup>
+                    <optgroup label="Credits (Offsets)">
+                      <option value="tree">Tree planted</option>
+                      <option value="transit">Public transit trip</option>
+                      <option value="solar">Solar energy (kWh)</option>
+                      <option value="custom_credit">
+                        Custom offset (kg CO2)
+                      </option>
+                    </optgroup>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="entry-amount"
+                    >Quantity
+                    <span class="unit-hint" id="unit-hint"
+                      >select category first</span
+                    ></label
+                  >
+                  <input
+                    type="number"
+                    id="entry-amount"
+                    placeholder="e.g. 50"
+                    min="0"
+                    step="0.1"
+                    required
+                    aria-required="true"
+                  />
+                </div>
+              </div>
+              <div class="form-grid form-grid--3">
+                <div class="form-group form-group--wide">
+                  <label for="entry-desc"
+                    >Description <span class="optional">(optional)</span></label
+                  >
+                  <input
+                    type="text"
+                    id="entry-desc"
+                    placeholder="e.g. Drive to office, Mumbai to Delhi flight"
+                    maxlength="120"
+                  />
+                </div>
+                <div class="form-group">
+                  <label for="entry-date">Date</label>
+                  <input
+                    type="date"
+                    id="entry-date"
+                    required
+                    aria-required="true"
+                  />
+                </div>
+              </div>
+              <div
+                class="form-error"
+                id="form-error"
+                role="alert"
+                aria-live="polite"
+                hidden
+              ></div>
+              <button type="submit" class="btn-primary" id="btn-post-entry">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M7 1v12M1 7h12"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                </svg>
+                Post to Ledger
+              </button>
+            </form>
+          </div>
+
+          <!-- AI Insight -->
+          <div class="insight-card" aria-live="polite" aria-label="AI insight">
+            <div class="insight-header">
+              <div class="insight-dot" id="insight-dot"></div>
+              <span class="insight-label" id="ai-provider-label"
+                >AI Insight</span
+              >
+            </div>
+            <div id="ai-insight" class="insight-text insight-text--placeholder">
+              Post your first entry and the AI will analyse your carbon
+              position.
+            </div>
+          </div>
+
+          <!-- Ledger Table -->
+          <div class="card card--table">
+            <div class="card-header">
+              <span class="card-title">Ledger entries</span>
+              <span class="folio-text" id="folio-total"
+                >Net: 0.0 kg CO<sub>2</sub></span
+              >
+            </div>
+            <div
+              class="table-wrapper"
+              role="region"
+              aria-label="Carbon journal entries"
+              tabindex="0"
+            >
+              <table
+                class="ledger-table"
+                aria-label="Carbon journal entries table"
+              >
+                <thead>
+                  <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Description</th>
+                    <th scope="col" class="col-right">
+                      Debit kg CO<sub>2</sub>
+                    </th>
+                    <th scope="col" class="col-right">
+                      Credit kg CO<sub>2</sub>
+                    </th>
+                    <th scope="col" class="col-action">
+                      <span class="sr-only">Remove</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody id="ledger-tbody">
+                  <tr>
+                    <td colspan="5" class="empty-row">
+                      No entries yet. Log your first transaction above.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Analysis Tab -->
+        <div
+          id="tab-analysis"
+          class="tab-panel"
+          role="tabpanel"
+          aria-labelledby="btn-analysis"
+          hidden
+        >
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Emissions by category</span>
+            </div>
+            <div id="category-bars" aria-label="Emissions by category">
+              <p class="empty-state">Log entries to see breakdown.</p>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Monthly ledger (last 6 months)</span>
+            </div>
+            <div
+              class="monthly-grid"
+              id="monthly-grid"
+              aria-label="Monthly carbon totals"
+            ></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Benchmark</span>
+            </div>
+            <table
+              class="benchmark-table"
+              aria-label="Carbon footprint benchmark comparison"
+            >
+              <tbody>
                 <tr>
-                  <th scope="col">Date</th>
-                  <th scope="col">Description</th>
-                  <th scope="col" class="col-right">Debit kg CO<sub>2</sub></th>
-                  <th scope="col" class="col-right">Credit kg CO<sub>2</sub></th>
-                  <th scope="col" class="col-action"></th>
+                  <td>Your monthly net</td>
+                  <td id="my-monthly" class="bench-val bench-mine">0 kg</td>
                 </tr>
-              </thead>
-              <tbody id="ledger-tbody">
                 <tr>
-                  <td colspan="5" class="empty-row">No entries yet. Log your first transaction above.</td>
+                  <td>India average (monthly)</td>
+                  <td class="bench-val bench-warn">133 kg</td>
+                </tr>
+                <tr>
+                  <td>Global average (monthly)</td>
+                  <td class="bench-val bench-danger">375 kg</td>
+                </tr>
+                <tr>
+                  <td>1.5&deg;C Paris target (monthly)</td>
+                  <td class="bench-val bench-good">167 kg</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
 
-      </div>
-
-      <!-- Analysis Tab -->
-      <div id="tab-analysis" class="tab-panel" role="tabpanel" aria-labelledby="btn-analysis" hidden>
-
-        <div class="card">
-          <div class="card-header"><span class="card-title">Emissions by category</span></div>
-          <div id="category-bars" aria-label="Emissions by category">
-            <p class="empty-state">Log entries to see breakdown.</p>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-header"><span class="card-title">Monthly ledger (last 6 months)</span></div>
-          <div class="monthly-grid" id="monthly-grid" aria-label="Monthly carbon totals"></div>
-        </div>
-
-        <div class="card">
-          <div class="card-header"><span class="card-title">Benchmark</span></div>
-          <table class="benchmark-table" aria-label="Carbon footprint benchmark">
-            <tbody>
-              <tr>
-                <td>Your monthly net</td>
-                <td id="my-monthly" class="bench-val bench-mine">0 kg</td>
-              </tr>
-              <tr>
-                <td>India average (monthly)</td>
-                <td class="bench-val bench-warn">133 kg</td>
-              </tr>
-              <tr>
-                <td>Global average (monthly)</td>
-                <td class="bench-val bench-danger">375 kg</td>
-              </tr>
-              <tr>
-                <td>1.5&deg;C Paris target (monthly)</td>
-                <td class="bench-val bench-good">167 kg</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-      </div>
-
-      <!-- Actions Tab -->
-      <div id="tab-actions" class="tab-panel" role="tabpanel" aria-labelledby="btn-actions" hidden>
-
-        <div class="card">
-          <div class="card-header"><span class="card-title">High-impact reductions</span></div>
-          <div class="actions-grid" id="actions-grid" aria-label="Suggested carbon reduction actions"></div>
-        </div>
-
-        <div class="card">
-          <div class="card-header"><span class="card-title">Ask the AI planner</span></div>
-          <div class="planner-row">
-            <input type="text" id="action-query" placeholder="e.g. How do I reduce my flight emissions?" aria-label="Ask the AI planner" />
-            <button class="btn-primary" onclick="Actions.askAI()" type="button">Ask AI</button>
-          </div>
-          <div class="insight-card insight-card--inline" aria-live="polite" style="margin-top:1rem;">
-            <div class="insight-header">
-              <div class="insight-dot" id="planner-dot"></div>
-              <span class="insight-label" id="ai-actions-label">AI Planner</span>
+        <!-- Actions Tab -->
+        <div
+          id="tab-actions"
+          class="tab-panel"
+          role="tabpanel"
+          aria-labelledby="btn-actions"
+          hidden
+        >
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">High-impact reductions</span>
             </div>
-            <div id="ai-action-answer" class="insight-text insight-text--placeholder">Your answer will appear here.</div>
+            <div
+              class="actions-grid"
+              id="actions-grid"
+              aria-label="Suggested carbon reduction actions"
+            ></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Ask the AI planner</span>
+            </div>
+            <div class="planner-row">
+              <input
+                type="text"
+                id="action-query"
+                placeholder="e.g. How do I reduce my flight emissions?"
+                aria-label="Ask the AI planner a question"
+              />
+              <button class="btn-primary" id="btn-ask-ai" type="button">
+                Ask AI
+              </button>
+            </div>
+            <div
+              class="insight-card insight-card--inline"
+              aria-live="polite"
+              style="margin-top: 1rem"
+            >
+              <div class="insight-header">
+                <div class="insight-dot" id="planner-dot"></div>
+                <span class="insight-label" id="ai-actions-label"
+                  >AI Planner</span
+                >
+              </div>
+              <div
+                id="ai-action-answer"
+                class="insight-text insight-text--placeholder"
+              >
+                Your answer will appear here.
+              </div>
+            </div>
           </div>
         </div>
-
       </div>
+    </main>
 
-    </div>
-  </main>
+    <footer class="site-footer" role="contentinfo">
+      <div class="container footer-inner">
+        <span class="footer-brand"
+          >Carbon Ledger &bull; Hack2Skill Challenge 3</span
+        >
+        <span class="footer-note">Factors: IPCC, DEFRA, CEA India 2022-23</span>
+      </div>
+    </footer>
 
-  <footer class="site-footer" role="contentinfo">
-    <div class="container footer-inner">
-      <span class="footer-brand">Carbon Ledger &bull; Hack2Skill Challenge 3</span>
-      <span class="footer-note">Factors: IPCC, DEFRA, CEA India 2022-23</span>
-    </div>
-  </footer>
-
-  <script src="js/config.js"></script>
-  <script src="js/store.js"></script>
-  <script src="js/ai.js"></script>
-  <script src="js/journal.js"></script>
-  <script src="js/analysis.js"></script>
-  <script src="js/actions.js"></script>
-  <script src="js/settings.js"></script>
-  <script src="js/ui.js"></script>
-  <script src="js/app.js"></script>
-  <script>
-    function toggleTheme() {
-      const html = document.documentElement;
-      const isDark = html.getAttribute('data-theme') === 'dark';
-      html.setAttribute('data-theme', isDark ? 'light' : 'dark');
-      document.getElementById('theme-icon').textContent = isDark ? '☽' : '☀';
-      localStorage.setItem('cl-theme', isDark ? 'light' : 'dark');
-    }
-    // Restore saved theme
-    const saved = localStorage.getItem('cl-theme');
-    if (saved) {
-      document.documentElement.setAttribute('data-theme', saved);
-      document.getElementById('theme-icon').textContent = saved === 'dark' ? '☀' : '☽';
-    }
-  </script>
-</body>
+    <script src="js/config.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/ai.js"></script>
+    <script src="js/journal.js"></script>
+    <script src="js/analysis.js"></script>
+    <script src="js/actions.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+  </body>
 </html>

@@ -2,10 +2,12 @@
  * @fileoverview Journal module for Carbon Ledger.
  * Handles form submission, ledger table rendering, entry deletion,
  * and AI insight triggering. All user-supplied strings are HTML-escaped
- * before insertion into the DOM to prevent XSS.
+ * before insertion into the DOM to prevent XSS. Remove buttons use
+ * data attributes instead of inline onclick handlers; clicks are
+ * handled via event delegation in app.js.
  *
  * @module journal
- * @version 1.0.0
+ * @version 2.0.0
  */
 
 'use strict';
@@ -37,7 +39,7 @@ const Journal = (() => {
   }
 
   /**
-   * Escapes HTML special characters in a string to prevent XSS injection.
+   * Escapes HTML special characters to prevent XSS injection.
    * Applied to all user-supplied text before inserting into innerHTML.
    *
    * @private
@@ -54,19 +56,19 @@ const Journal = (() => {
   }
 
   /**
-   * Returns today's date as an ISO string (YYYY-MM-DD).
+   * Returns today's date formatted as YYYY-MM-DD.
    * @private
-   * @returns {string} Today's date
+   * @returns {string}
    */
   function _today() {
     return new Date().toISOString().split('T')[0];
   }
 
   /**
-   * Displays a validation error message in the form error element.
+   * Shows a validation error message in the form error element.
    * @private
-   * @param {HTMLElement} el  - The error display element
-   * @param {string}      msg - Error message to display
+   * @param {HTMLElement} el  - Error display element
+   * @param {string}      msg - Error message to show
    * @returns {void}
    */
   function _showError(el, msg) {
@@ -78,8 +80,8 @@ const Journal = (() => {
 
   /**
    * Re-renders the full ledger table from current Store state.
-   * Shows an empty-state row when no entries exist.
-   * All entry descriptions are HTML-escaped before rendering.
+   * Remove buttons use data-entry-id attributes; clicks handled
+   * via event delegation in app.js (no inline onclick).
    *
    * @private
    * @returns {void}
@@ -115,9 +117,10 @@ const Journal = (() => {
           <td style="text-align:center;">
             <button
               class="btn-remove"
-              onclick="Journal.removeEntry(${e.id})"
+              data-entry-id="${e.id}"
               aria-label="Remove entry: ${_escHtml(e.desc)}"
-              title="Remove this entry">
+              title="Remove this entry"
+              type="button">
               &#x2715;
             </button>
           </td>
@@ -128,14 +131,12 @@ const Journal = (() => {
   // ── AI insight ─────────────────────────────────────────────
 
   /**
-   * Triggers an AI insight request for the most recently posted entry.
-   * Displays a loading animation while awaiting the response.
-   * Gracefully falls back to a static message if the AI call fails.
-   * Debounced by the _isAIThinking flag to prevent concurrent requests.
+   * Triggers an AI insight for the most recently posted entry.
+   * Debounced by _isAIThinking flag to prevent concurrent requests.
    *
    * @private
    * @async
-   * @param {import('./store').LedgerEntry} entry - The newly posted entry
+   * @param {import('./store').LedgerEntry} entry - Newly posted entry
    * @returns {Promise<void>}
    */
   async function _triggerAIInsight(entry) {
@@ -146,11 +147,9 @@ const Journal = (() => {
     const providerKey  = document.getElementById('model-select')?.value || 'claude';
     const providerName = CONFIG.AI_PROVIDERS[providerKey]?.name || 'AI';
 
-    // Update provider label
     const labelEl = document.getElementById('ai-provider-label');
     if (labelEl) labelEl.textContent = `AI Insight (${providerName})`;
 
-    // Show loading state
     box.className = 'insight-text';
     box.innerHTML = `
       <span class="ai-thinking">
@@ -161,7 +160,6 @@ const Journal = (() => {
       </span>`;
     UI.setInsightState('insight-dot', 'thinking');
 
-    // Build prompts
     const totals    = Store.getTotals();
     const catTotals = Store.getCategoryTotals();
     const system    = AI.buildInsightSystem(totals, catTotals);
@@ -169,7 +167,7 @@ const Journal = (() => {
     const prompt    = `The user just logged: "${entry.desc}" (${sign}${entry.kg.toFixed(2)} kg CO2). Provide your insight.`;
 
     try {
-      const text  = await AI.ask(system, prompt);
+      const text = await AI.ask(system, prompt);
       box.className   = 'insight-text';
       box.textContent = text;
       UI.setInsightState('insight-dot', 'done');
@@ -186,9 +184,9 @@ const Journal = (() => {
   // ── Public API ─────────────────────────────────────────────
 
   /**
-   * Handles the entry form submission event.
-   * Validates all fields, constructs a LedgerEntry, adds it to the Store,
-   * updates the UI, and triggers an AI insight.
+   * Handles the entry form submit event.
+   * Validates all fields, constructs a LedgerEntry, persists it,
+   * updates all UI components, and triggers an AI insight.
    *
    * @param {Event} e - The form submit event
    * @returns {void}
@@ -202,20 +200,16 @@ const Journal = (() => {
     const date     = document.getElementById('entry-date').value;
     const errEl    = document.getElementById('form-error');
 
-    // Reset previous error
     errEl.hidden = true;
 
-    // Validate inputs
-    if (!category || !CONFIG.EMISSION_FACTORS.hasOwnProperty(category)) {
+    if (!category || !Object.prototype.hasOwnProperty.call(CONFIG.EMISSION_FACTORS, category)) {
       _showError(errEl, 'Please select a valid category.');
       return;
     }
-
     if (!amount || amount <= 0 || !isFinite(amount)) {
       _showError(errEl, 'Please enter a valid positive amount.');
       return;
     }
-
     if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       _showError(errEl, 'Please select a valid date.');
       return;
@@ -238,14 +232,14 @@ const Journal = (() => {
     _renderTable();
     _triggerAIInsight(entry);
 
-    // Reset form to clean state
     document.getElementById('entry-form').reset();
-    document.getElementById('entry-date').value    = _today();
+    document.getElementById('entry-date').value     = _today();
     document.getElementById('unit-hint').textContent = 'select a category first';
   }
 
   /**
-   * Removes a single entry from the Store by its ID and refreshes all UI.
+   * Removes a single entry from the Store by ID and refreshes all UI.
+   * Called via event delegation in app.js when a remove button is clicked.
    *
    * @param {number} id - The unique entry ID to remove
    * @returns {void}
@@ -258,9 +252,7 @@ const Journal = (() => {
   }
 
   /**
-   * Updates the unit hint label when the user changes the category selector.
-   * Helps users understand what quantity unit to enter.
-   *
+   * Updates the unit hint when the category selector changes.
    * @returns {void}
    */
   function onCategoryChange() {
@@ -274,9 +266,8 @@ const Journal = (() => {
 
   /**
    * Initialises the Journal module.
-   * Sets default date, attaches the category change listener, and renders
-   * any previously persisted entries from the Store.
-   * Must be called after Store.load() during application bootstrap.
+   * Sets default date, attaches category change listener, renders table.
+   * Must be called after Store.load().
    *
    * @returns {void}
    */
