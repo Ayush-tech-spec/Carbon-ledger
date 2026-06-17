@@ -37,8 +37,7 @@ const AI = (() => {
    * @returns {'claude'|'grok'} Provider key
    */
   function _getProvider() {
-    const sel = document.getElementById('model-select');
-    return (sel && sel.value) ? sel.value : 'claude';
+    return UI.getCurrentModel();
   }
 
   /**

@@ -90,42 +90,65 @@ const Journal = (() => {
     const tbody   = document.getElementById('ledger-tbody');
     const entries = Store.getAll();
 
+    tbody.replaceChildren();
+
     if (!entries.length) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="5" class="empty-row">
-            No entries yet. Log your first transaction above.
-          </td>
-        </tr>`;
+      const tr = document.createElement('tr');
+      const td = document.createElement('td');
+      td.colSpan = 5;
+      td.className = 'empty-row';
+      td.textContent = 'No entries yet. Log your first transaction above.';
+      tr.appendChild(td);
+      tbody.appendChild(tr);
       return;
     }
 
-    tbody.innerHTML = entries.map(e => {
+    entries.forEach(e => {
       const cat     = CONFIG.CATEGORY_MAP[e.category] || 'other';
       const tagCls  = CONFIG.TAG_CLASS[cat]            || 'tag-transport';
       const isDebit = e.kg > 0;
 
-      return `
-        <tr>
-          <td class="entry-date">${_escHtml(e.date)}</td>
-          <td class="entry-desc">
-            ${_escHtml(e.desc)}
-            <span class="entry-tag ${tagCls}" aria-label="${cat} category">${cat}</span>
-          </td>
-          <td class="debit-amount">${isDebit ? Math.abs(e.kg).toFixed(2) : ''}</td>
-          <td class="credit-amount">${!isDebit ? Math.abs(e.kg).toFixed(2) : ''}</td>
-          <td style="text-align:center;">
-            <button
-              class="btn-remove"
-              data-entry-id="${e.id}"
-              aria-label="Remove entry: ${_escHtml(e.desc)}"
-              title="Remove this entry"
-              type="button">
-              &#x2715;
-            </button>
-          </td>
-        </tr>`;
-    }).join('');
+      const tr = document.createElement('tr');
+
+      const tdDate = document.createElement('td');
+      tdDate.className = 'entry-date';
+      tdDate.textContent = e.date;
+
+      const tdDesc = document.createElement('td');
+      tdDesc.className = 'entry-desc';
+      tdDesc.textContent = e.desc + ' ';
+      const spanTag = document.createElement('span');
+      spanTag.className = `entry-tag ${tagCls}`;
+      spanTag.setAttribute('aria-label', `${cat} category`);
+      spanTag.textContent = cat;
+      tdDesc.appendChild(spanTag);
+
+      const tdDebit = document.createElement('td');
+      tdDebit.className = 'debit-amount';
+      tdDebit.textContent = isDebit ? Math.abs(e.kg).toFixed(2) : '';
+
+      const tdCredit = document.createElement('td');
+      tdCredit.className = 'credit-amount';
+      tdCredit.textContent = !isDebit ? Math.abs(e.kg).toFixed(2) : '';
+
+      const tdAct = document.createElement('td');
+      tdAct.style.textAlign = 'center';
+      const btn = document.createElement('button');
+      btn.className = 'btn-remove';
+      btn.dataset.entryId = e.id;
+      btn.setAttribute('aria-label', `Remove entry: ${e.desc}`);
+      btn.title = 'Remove this entry';
+      btn.type = 'button';
+      btn.textContent = '✕';
+      tdAct.appendChild(btn);
+
+      tr.appendChild(tdDate);
+      tr.appendChild(tdDesc);
+      tr.appendChild(tdDebit);
+      tr.appendChild(tdCredit);
+      tr.appendChild(tdAct);
+      tbody.appendChild(tr);
+    });
   }
 
   // ── AI insight ─────────────────────────────────────────────
@@ -144,20 +167,13 @@ const Journal = (() => {
     _isAIThinking = true;
 
     const box          = document.getElementById('ai-insight');
-    const providerKey  = document.getElementById('model-select')?.value || 'claude';
+    const providerKey  = UI.getCurrentModel();
     const providerName = CONFIG.AI_PROVIDERS[providerKey]?.name || 'AI';
-
-    const labelEl = document.getElementById('ai-provider-label');
-    if (labelEl) labelEl.textContent = `AI Insight (${providerName})`;
+    UI.updateAILabels(providerName);
 
     box.className = 'insight-text';
-    box.innerHTML = `
-      <span class="ai-thinking">
-        Analysing
-        <span class="dot-pulse" aria-hidden="true">
-          <span></span><span></span><span></span>
-        </span>
-      </span>`;
+    box.replaceChildren();
+    box.appendChild(UI.createThinkingLoader('Analysing'));
     UI.setInsightState('insight-dot', 'thinking');
 
     const totals    = Store.getTotals();

@@ -74,7 +74,13 @@ const UI = (() => {
     _setText('net-balance',  net.toFixed(1));
 
     const folio = document.getElementById('folio-total');
-    if (folio) folio.innerHTML = `Net: ${net.toFixed(1)} kg CO<sub>2</sub>`;
+    if (folio) {
+      folio.replaceChildren();
+      folio.appendChild(document.createTextNode(`Net: ${net.toFixed(1)} kg CO`));
+      const sub = document.createElement('sub');
+      sub.textContent = '2';
+      folio.appendChild(sub);
+    }
   }
 
   // ── Full refresh ───────────────────────────────────────────
@@ -109,15 +115,9 @@ const UI = (() => {
    * @returns {void}
    */
   function onModelChange() {
-    const sel          = document.getElementById('model-select');
-    const providerKey  = sel ? sel.value : 'claude';
+    const providerKey  = getCurrentModel();
     const providerName = CONFIG.AI_PROVIDERS[providerKey]?.name || 'AI';
-
-    const aiLabel = document.getElementById('ai-provider-label');
-    if (aiLabel) aiLabel.textContent = `AI Insight (${providerName})`;
-
-    const actionLabel = document.getElementById('ai-actions-label');
-    if (actionLabel) actionLabel.textContent = `AI Planner (${providerName})`;
+    updateAILabels(providerName);
   }
 
   // ── Insight dot ────────────────────────────────────────────
@@ -134,6 +134,46 @@ const UI = (() => {
     const dot = document.getElementById(dotId);
     if (!dot) return;
     dot.className = state ? `insight-dot insight-dot--${state}` : 'insight-dot';
+  }
+
+
+  /**
+   * Retrieves the currently selected AI model key.
+   * @returns {string} The model key (e.g. 'claude')
+   */
+  function getCurrentModel() {
+    return document.getElementById('model-select')?.value || 'claude';
+  }
+
+  /**
+   * Generates the DOM nodes for the "Thinking" dot-pulse loader.
+   * @param {string} text - The text to display next to the dots.
+   * @returns {HTMLElement} The span element containing the loader.
+   */
+  function createThinkingLoader(text = 'Thinking') {
+    const spanAI = document.createElement('span');
+    spanAI.className = 'ai-thinking';
+    spanAI.textContent = text;
+    const spanPulse = document.createElement('span');
+    spanPulse.className = 'dot-pulse';
+    spanPulse.setAttribute('aria-hidden', 'true');
+    spanPulse.appendChild(document.createElement('span'));
+    spanPulse.appendChild(document.createElement('span'));
+    spanPulse.appendChild(document.createElement('span'));
+    spanAI.appendChild(spanPulse);
+    return spanAI;
+  }
+
+  /**
+   * Updates the AI labels in the UI with the selected provider's name.
+   * @param {string} providerName - The formatted name of the provider.
+   */
+  function updateAILabels(providerName) {
+    const aiLabel = document.getElementById('ai-provider-label');
+    if (aiLabel) aiLabel.textContent = `AI Insight (${providerName})`;
+
+    const actionLabel = document.getElementById('ai-actions-label');
+    if (actionLabel) actionLabel.textContent = `AI Planner (${providerName})`;
   }
 
   // ── Private utilities ──────────────────────────────────────
@@ -159,5 +199,8 @@ const UI = (() => {
     refreshAll,
     onModelChange,
     setInsightState,
+    getCurrentModel,
+    createThinkingLoader,
+    updateAILabels,
   });
 })();

@@ -30,11 +30,15 @@ const Actions = (() => {
    * @param {string} html - HTML content for the answer box
    * @returns {void}
    */
-  function _setPlannerState(state, html) {
+  function _setPlannerState(state) {
     const box = document.getElementById('ai-action-answer');
     if (box) {
       box.className = 'insight-text';
-      box.innerHTML = html;
+      box.replaceChildren();
+      
+      if (state === 'thinking') {
+        box.appendChild(UI.createThinkingLoader('Thinking'));
+      }
     }
     UI.setInsightState('planner-dot', state);
   }
@@ -52,19 +56,32 @@ const Actions = (() => {
     const grid = document.getElementById('actions-grid');
     if (!grid) return;
 
-    grid.innerHTML = CONFIG.ACTIONS.map((action, i) => `
-      <button
-        class="action-card"
-        data-action-index="${i}"
-        type="button"
-        aria-label="${action.description}. Estimated saving: ${action.saving}">
-        <div class="action-saving">${action.saving}</div>
-        <div class="action-desc">${action.description}</div>
-        <div class="action-difficulty">
-          Difficulty: ${action.difficulty} &bull; Ask AI &nearr;
-        </div>
-      </button>`
-    ).join('');
+    grid.replaceChildren();
+
+    CONFIG.ACTIONS.forEach((action, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'action-card';
+      btn.dataset.actionIndex = i;
+      btn.type = 'button';
+      btn.setAttribute('aria-label', `${action.description}. Estimated saving: ${action.saving}`);
+
+      const saving = document.createElement('div');
+      saving.className = 'action-saving';
+      saving.textContent = action.saving;
+
+      const desc = document.createElement('div');
+      desc.className = 'action-desc';
+      desc.textContent = action.description;
+
+      const diff = document.createElement('div');
+      diff.className = 'action-difficulty';
+      diff.textContent = `Difficulty: ${action.difficulty} \u2022 Ask AI \u2197`;
+
+      btn.appendChild(saving);
+      btn.appendChild(desc);
+      btn.appendChild(diff);
+      grid.appendChild(btn);
+    });
 
     // Event delegation: one listener handles all card clicks
     grid.addEventListener('click', e => {
@@ -109,19 +126,11 @@ const Actions = (() => {
 
     _isThinking = true;
 
-    const providerKey  = document.getElementById('model-select')?.value || 'claude';
+    const providerKey  = UI.getCurrentModel();
     const providerName = CONFIG.AI_PROVIDERS[providerKey]?.name || 'AI';
+    UI.updateAILabels(providerName);
 
-    const labelEl = document.getElementById('ai-actions-label');
-    if (labelEl) labelEl.textContent = `AI Planner (${providerName})`;
-
-    _setPlannerState('thinking', `
-      <span class="ai-thinking">
-        Thinking
-        <span class="dot-pulse" aria-hidden="true">
-          <span></span><span></span><span></span>
-        </span>
-      </span>`);
+    _setPlannerState('thinking');
 
     const system      = AI.buildPlannerSystem();
     const totals      = Store.getTotals();

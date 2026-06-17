@@ -35,31 +35,53 @@ const Analysis = (() => {
     const maxVal = Math.max(...Object.values(cats), 1);
     const hasData = Object.values(cats).some(v => v > 0);
 
+    container.replaceChildren();
+
     if (!hasData) {
-      container.innerHTML = '<p class="empty-state">Log entries to see breakdown.</p>';
+      const p = document.createElement('p');
+      p.className = 'empty-state';
+      p.textContent = 'Log entries to see breakdown.';
+      container.appendChild(p);
       return;
     }
 
     const categories = /** @type {Array<keyof typeof cats>} */ (['transport', 'food', 'energy', 'shopping']);
 
-    container.innerHTML = categories.map(cat => {
+    categories.forEach(cat => {
       const val = cats[cat] || 0;
       const pct = Math.round((val / maxVal) * 100);
-      return `
-        <div class="impact-row">
-          <div class="impact-cat">${cat}</div>
-          <div
-            class="impact-bar-track"
-            role="progressbar"
-            aria-valuenow="${val.toFixed(1)}"
-            aria-valuemin="0"
-            aria-valuemax="${maxVal.toFixed(1)}"
-            aria-label="${cat}: ${val.toFixed(1)} kg CO2">
-            <div class="impact-bar-fill fill-${cat}" style="width:${pct}%"></div>
-          </div>
-          <div class="impact-val" aria-live="polite">${val.toFixed(1)} kg</div>
-        </div>`;
-    }).join('');
+
+      const row = document.createElement('div');
+      row.className = 'impact-row';
+
+      const catEl = document.createElement('div');
+      catEl.className = 'impact-cat';
+      catEl.textContent = cat;
+
+      const track = document.createElement('div');
+      track.className = 'impact-bar-track';
+      track.setAttribute('role', 'progressbar');
+      track.setAttribute('aria-valuenow', val.toFixed(1));
+      track.setAttribute('aria-valuemin', '0');
+      track.setAttribute('aria-valuemax', maxVal.toFixed(1));
+      track.setAttribute('aria-label', `${cat}: ${val.toFixed(1)} kg CO2`);
+
+      const fill = document.createElement('div');
+      fill.className = `impact-bar-fill fill-${cat}`;
+      fill.style.width = `${pct}%`;
+      track.appendChild(fill);
+
+      const valEl = document.createElement('div');
+      valEl.className = 'impact-val';
+      valEl.setAttribute('aria-live', 'polite');
+      valEl.textContent = `${val.toFixed(1)} kg`;
+
+      row.appendChild(catEl);
+      row.appendChild(track);
+      row.appendChild(valEl);
+
+      container.appendChild(row);
+    });
   }
 
   /**
@@ -77,16 +99,34 @@ const Analysis = (() => {
     const months = Store.getMonthlyTotals(6);
     const maxAbs = Math.max(...months.map(m => Math.abs(m.val)), 1);
 
-    grid.innerHTML = months.map(m => {
+    grid.replaceChildren();
+
+    months.forEach(m => {
       const pct   = Math.round((Math.abs(m.val) / maxAbs) * 100);
       const color = m.val > 0 ? '#c06040' : m.val < 0 ? '#4a8040' : '#555';
-      return `
-        <div class="month-cell" title="${m.name}: ${m.val.toFixed(1)} kg CO\u2082">
-          <div class="month-name">${m.name}</div>
-          <div class="month-val">${m.val !== 0 ? m.val.toFixed(0) : '0'}</div>
-          <div class="month-bar" style="width:${pct}%; background:${color};"></div>
-        </div>`;
-    }).join('');
+      
+      const cell = document.createElement('div');
+      cell.className = 'month-cell';
+      cell.title = `${m.name}: ${m.val.toFixed(1)} kg CO\u2082`;
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'month-name';
+      nameEl.textContent = m.name;
+
+      const valEl = document.createElement('div');
+      valEl.className = 'month-val';
+      valEl.textContent = m.val !== 0 ? m.val.toFixed(0) : '0';
+
+      const bar = document.createElement('div');
+      bar.className = 'month-bar';
+      bar.style.width = `${pct}%`;
+      bar.style.background = color;
+
+      cell.appendChild(nameEl);
+      cell.appendChild(valEl);
+      cell.appendChild(bar);
+      grid.appendChild(cell);
+    });
   }
 
   /**
